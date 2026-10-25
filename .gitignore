@@ -1,0 +1,10 @@
+data/*
+!data/.gitkeep
+outputs/*
+!outputs/.gitkeep
+.ipynb_checkpoints/
+__pycache__/
+.env
+*.wav
+*.mp4
+
