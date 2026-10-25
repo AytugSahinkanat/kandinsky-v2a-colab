@@ -4,7 +4,7 @@ Small no-training experiment for video-conditioned sound generation with Kandins
 
 ## What this repository does
 
-- Runs the official Kandinsky native video-to-audio path on one five-second game clip.
+- Runs the official Kandinsky native video-to-audio path on one game clip. Five seconds is the validated baseline; the notebook also exposes an experimental longer-duration setting through the official time-length option.
 - Saves the generated MP4 and a JSON listening report.
 - Does not store input videos, generated media, model checkpoints, or API secrets in Git.
 
