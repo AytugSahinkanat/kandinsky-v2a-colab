@@ -30,3 +30,12 @@ The official Kandinsky code repository and Lite Distill checkpoint currently dis
 
 Use the same video and exact same event prompt in the Stable Audio arm. Compare event match, audio-video sync, sound quality, unwanted music/speech, and latency. Keep our listening observations separate from paper-reported benchmarks.
 
+## Quality comparison notebook
+
+The Pro Distill A/B notebook keeps the Lite notebook unchanged. Use the same video, exact event prompt, duration, and seed as the Lite run, then compare sound quality and treat synchronization as a control metric.
+
+- [Open the Pro Distill quality comparison in Colab](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_Quality_ProDistill.ipynb)
+- Pro Distill is a large checkpoint; the notebook requires an A100 80 GB runtime and at least 90 GiB free disk space.
+- The output remains one continuous audio track. Separate semantic one-shot files are not generated.
+
+
