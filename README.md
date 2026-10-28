@@ -47,4 +47,5 @@ The seed-sweep notebook regenerates a selected five-second video window with see
 
 - [Open the last-window seed sweep in Colab](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_LastWindow_SeedSweep.ipynb)
 - For a 15-second clip, the default window is 10–15 seconds. Keep the event prompt identical to the earlier windows.
+- The notebook reuses existing Pro Distill weights or automatically uses Colab local-scratch; if neither is available, it requires 90 GiB free on /content.
 
