@@ -41,5 +41,10 @@ The Pro Distill A/B notebook keeps the Lite notebook unchanged. Use the same vid
 
 The Pro Distill comparison uses a selectable 5-second window. Longer clips require a separate chunking experiment. For a fair Lite-vs-Pro comparison, use the same video window, prompt, and seed.
 
+## Last-window seed sweep
 
+The seed-sweep notebook regenerates a selected five-second video window with seeds 42, 123, and 7 while keeping the prompt, video, and model settings fixed. It runs candidates sequentially and reports sampled system RAM and GPU memory.
+
+- [Open the last-window seed sweep in Colab](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_LastWindow_SeedSweep.ipynb)
+- For a 15-second clip, the default window is 10–15 seconds. Keep the event prompt identical to the earlier windows.
 
