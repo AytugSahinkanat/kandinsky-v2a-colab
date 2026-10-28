@@ -39,6 +39,7 @@ The Pro Distill A/B notebook keeps the Lite notebook unchanged. Use the same vid
 - The output remains one continuous audio track. Separate semantic one-shot files are not generated.
 
 
-The Pro Distill experiment uses the uploaded clip's full duration in one pass up to 10 seconds. Durations above 5 seconds are exploratory because the released checkpoint is a 5-second model. Longer clips stop with an explicit message instead of being silently truncated. For a fair Lite-vs-Pro comparison, rerun Lite at the same duration, prompt, and seed.
+The Pro Distill comparison uses a selectable 5-second window. Longer clips require a separate chunking experiment. For a fair Lite-vs-Pro comparison, use the same video window, prompt, and seed.
+
 
 
