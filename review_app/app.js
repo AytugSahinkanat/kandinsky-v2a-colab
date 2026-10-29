@@ -1,54 +1,165 @@
 'use strict';
 const study = JSON.parse(document.getElementById('study').textContent);
 const $ = id => document.getElementById(id);
-const sceneById = new Map(study.scenes.map(s => [s.id, s]));
-const storageKey = 'kandinsky-v2a-review-v1:' + study.study_id;
-let state, objectVideo = null;
+const sceneById = new Map(study.scenes.map(scene => [scene.id, scene]));
+const storageKey = 'kandinsky-v2a-review-v2:' + study.study_id;
+let state;
 
-function uid(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('');}
-function shuffle(values){const out=[...values];for(let i=out.length-1;i>0;i--){const a=new Uint32Array(1);crypto.getRandomValues(a);const j=a[0]%(i+1);[out[i],out[j]]=[out[j],out[i]];}return out;}
-function newAnswer(sceneId){return {scene_id:sceneId,candidates:sceneById.get(sceneId).candidates.map(c=>({candidate_id:c.id,event_fit:null,sync:null,audio_quality:null,artifact_severity:null,unwanted_music_or_speech:null,would_use:null,note:''})),best_candidate_id:null,note:''};}
-function fresh(){const sceneOrder=shuffle(study.scenes.map(s=>s.id));const candidateOrders={};for(const s of study.scenes)candidateOrders[s.id]=shuffle(s.candidates.map(c=>c.id));return {schema:'kandinsky-v2a-listening-response-v1',study_id:study.study_id,participant_id:uid(),alias:'',device:'unspecified',consent_acknowledged:false,scene_order:sceneOrder,candidate_orders:candidateOrders,index:0,updated_at:new Date().toISOString(),answers:study.scenes.map(s=>newAnswer(s.id))};}
-function validate(value){
-  if(!value||value.schema!=='kandinsky-v2a-listening-response-v1'||value.study_id!==study.study_id)throw Error('This response file belongs to a different study.');
-  const sceneIds=new Set(study.scenes.map(s=>s.id));
-  if(!/^[a-f0-9]{32}$/.test(value.participant_id)||!Array.isArray(value.scene_order)||value.scene_order.length!==sceneIds.size||new Set(value.scene_order).size!==sceneIds.size||value.scene_order.some(id=>!sceneIds.has(id)))throw Error('Invalid participant or scene order.');
-  if(!Array.isArray(value.answers)||value.answers.length!==sceneIds.size||new Set(value.answers.map(a=>a.scene_id)).size!==sceneIds.size||value.answers.some(a=>!sceneIds.has(a.scene_id)))throw Error('Scene answers are missing or duplicated.');
-  for(const s of study.scenes){const order=value.candidate_orders?.[s.id],expected=new Set(s.candidates.map(c=>c.id));if(!Array.isArray(order)||order.length!==expected.size||new Set(order).size!==expected.size||order.some(id=>!expected.has(id)))throw Error('Candidate order is invalid.');const a=value.answers.find(x=>x.scene_id===s.id);if(!Array.isArray(a.candidates)||a.candidates.length!==expected.size||new Set(a.candidates.map(c=>c.candidate_id)).size!==expected.size||a.candidates.some(c=>!expected.has(c.candidate_id)))throw Error('Candidate answers are missing or duplicated.');if(a.best_candidate_id!==null&&a.best_candidate_id!=='none'&&!expected.has(a.best_candidate_id))throw Error('Preferred candidate is invalid.');if(typeof a.note!=='string'||a.note.length>1000)throw Error('Scene note is invalid.');for(const c of a.candidates){for(const k of ['event_fit','sync','audio_quality','artifact_severity'])if(c[k]!==null&&(!Number.isInteger(c[k])||c[k]<1||c[k]>5))throw Error('Ratings must be from 1 to 5.');if(c.unwanted_music_or_speech!==null&&typeof c.unwanted_music_or_speech!=='boolean')throw Error('Unwanted-sound answer is invalid.');if(c.would_use!==null&&!['yes','after_edit','no'].includes(c.would_use))throw Error('Use decision is invalid.');if(typeof c.note!=='string'||c.note.length>1000)throw Error('Candidate note is invalid.');}}
-  if(typeof value.alias!=='string'||value.alias.length>60||!['unspecified','headphones','speakers','phone'].includes(value.device)||typeof value.consent_acknowledged!=='boolean'||!Number.isInteger(value.index)||value.index<0||value.index>=sceneIds.size)throw Error('Participant details are invalid.');return value;
+function uid() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
 }
-try{state=validate(JSON.parse(localStorage.getItem(storageKey)||'null'));}catch{state=fresh();}
-function currentSceneId(){return state.scene_order[state.index];}
-function answerFor(sceneId=currentSceneId()){return state.answers.find(a=>a.scene_id===sceneId);}
-function candidateAnswer(sceneId,candidateId){return answerFor(sceneId).candidates.find(a=>a.candidate_id===candidateId);}
-function candidateComplete(c){return c.event_fit!==null&&c.sync!==null&&c.audio_quality!==null&&c.artifact_severity!==null&&c.unwanted_music_or_speech!==null&&c.would_use!==null;}
-function sceneComplete(a){return a.candidates.every(candidateComplete)&&a.best_candidate_id!==null;}
-function save(){state.updated_at=new Date().toISOString();try{localStorage.setItem(storageKey,JSON.stringify(state));$('saved').textContent='Saved in this browser';}catch{$('saved').textContent='Browser storage unavailable — download JSON to keep your work';}}
-function selectOptions(select,values,placeholder){const first=document.createElement('option');first.value='';first.textContent=placeholder;select.append(first);for(const [value,label] of values){const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o);}}
-function makeRating(label,key,answer,items,placeholder){const wrap=document.createElement('div');const l=document.createElement('label');l.textContent=label;const select=document.createElement('select');select.setAttribute('aria-label',label);selectOptions(select,items,placeholder);select.value=answer[key]===null?'':String(answer[key]);select.onchange=()=>{answer[key]=select.value===''?null:(key==='unwanted_music_or_speech'?select.value==='yes':key==='would_use'?select.value:Number(select.value));save();refreshProgress();};wrap.append(l,select);return wrap;}
-function stopMedia(){const v=$('video');v.pause();for(const a of document.querySelectorAll('audio'))a.pause();if(objectVideo){URL.revokeObjectURL(objectVideo);objectVideo=null;}}
-function render(){
-  stopMedia();const sid=currentSceneId(),scene=sceneById.get(sid),answer=answerFor(sid);$('position').textContent=`SCENE ${String(state.index+1).padStart(2,'0')} / ${study.scenes.length}`;$('sceneTitle').textContent=scene.label;$('alias').value=state.alias;$('device').value=state.device;$('consent').checked=state.consent_acknowledged;$('sceneNote').value=answer.note;
-  $('video').src=new URL(scene.video,document.baseURI).href;
-  const order=state.candidate_orders[sid],labels='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const candidateHost=$('candidates');candidateHost.replaceChildren();const visibleLabels={};
-  for(let i=0;i<order.length;i++){const cid=order[i],candidate=scene.candidates.find(c=>c.id===cid),ca=candidateAnswer(sid,cid),label=labels[i]||`Candidate ${i+1}`;visibleLabels[cid]=label;const card=document.createElement('article');card.className='candidate';const head=document.createElement('div');head.className='candidate-header';const name=document.createElement('span');name.className='candidate-label';name.textContent=`Candidate ${label}`;head.append(name);const player=document.createElement('audio');player.controls=true;player.preload='none';player.src=new URL(candidate.audio,document.baseURI).href;const metrics=document.createElement('div');metrics.className='rating-grid';metrics.append(
-      makeRating('Scene fit','event_fit',ca,[[1,'1 · Poor fit'],[2,'2'],[3,'3 · Fair'],[4,'4'],[5,'5 · Excellent fit']],'Select'),
-      makeRating('Audio-video timing','sync',ca,[[1,'1 · Poor'],[2,'2'],[3,'3 · Fair'],[4,'4'],[5,'5 · Excellent']],'Select'),
-      makeRating('Sound quality','audio_quality',ca,[[1,'1 · Poor'],[2,'2'],[3,'3 · Fair'],[4,'4'],[5,'5 · Excellent']],'Select'),
-      makeRating('Noise / artifacts','artifact_severity',ca,[[1,'1 · None'],[2,'2'],[3,'3 · Moderate'],[4,'4'],[5,'5 · Severe']],'Select'));
-    const extra=document.createElement('div');extra.className='rating-grid';extra.append(makeRating('Unwanted music or speech?','unwanted_music_or_speech',ca,[['no','No'],['yes','Yes']],'Select'),makeRating('Would you keep it?','would_use',ca,[['yes','Yes'],['after_edit','After editing'],['no','No']],'Select'));
-    const noteLabel=document.createElement('label');noteLabel.textContent='Candidate note (optional)';const note=document.createElement('textarea');note.rows=2;note.maxLength=1000;note.placeholder='What stood out?';note.value=ca.note;note.oninput=()=>{ca.note=note.value;save();};
-    card.append(head,player,metrics,extra,noteLabel,note);candidateHost.append(card);
+function shuffle(values) {
+  const result = [...values];
+  for (let i = result.length - 1; i > 0; i--) {
+    const bytes = new Uint32Array(1);
+    crypto.getRandomValues(bytes);
+    const j = bytes[0] % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
   }
-  const best=$('bestCandidate');best.replaceChildren();for(const value of [...order,'none']){const b=document.createElement('button');b.type='button';b.textContent=value==='none'?'No clear winner':`Candidate ${visibleLabels[value]}`;b.setAttribute('aria-pressed',String(answer.best_candidate_id===value));b.onclick=()=>{answer.best_candidate_id=answer.best_candidate_id===value?null:value;save();renderBest();refreshProgress();};b.dataset.candidate=value;best.append(b);}
-  $('prev').disabled=state.index===0;$('next').textContent=state.index===study.scenes.length-1?'Review and download ↓':'Next scene →';refreshProgress();
+  return result;
 }
-function renderBest(){const sid=currentSceneId(),order=state.candidate_orders[sid],labels='ABCDEFGHIJKLMNOPQRSTUVWXYZ',chosen=answerFor(sid).best_candidate_id;const visible={};order.forEach((id,i)=>visible[id]=labels[i]||`Candidate ${i+1}`);for(const b of $('bestCandidate').children){const cid=b.dataset.candidate;b.textContent=cid==='none'?'No clear winner':`Candidate ${visible[cid]}`;b.setAttribute('aria-pressed',String(chosen===cid));}}
-function refreshProgress(){const done=state.answers.filter(sceneComplete).length;$('progress').max=study.scenes.length;$('progress').value=done;$('progressLabel').textContent=`${done} / ${study.scenes.length} scenes completed`;$('state').textContent=sceneComplete(answerFor())?'RATED':'IN PROGRESS';$('deliveryTitle').textContent=done===study.scenes.length?'Study complete — thank you':'Take a break or finish';$('jump').replaceChildren(...state.scene_order.map((sid,i)=>{const b=document.createElement('button');b.textContent=String(i+1);b.className=sceneComplete(answerFor(sid))?'done':'';b.setAttribute('aria-current',String(i===state.index));b.setAttribute('aria-label',`Scene ${i+1}, ${sceneComplete(answerFor(sid))?'completed':'incomplete'}`);b.onclick=()=>{state.index=i;save();render();};return b;}));}
-$('alias').oninput=()=>{state.alias=$('alias').value;save();};$('device').onchange=()=>{state.device=$('device').value;save();};$('consent').onchange=()=>{state.consent_acknowledged=$('consent').checked;save();};$('sceneNote').oninput=()=>{answerFor().note=$('sceneNote').value;save();};
-$('prev').onclick=()=>{if(state.index>0){state.index--;save();render();}};$('next').onclick=()=>{if(state.index<study.scenes.length-1){state.index++;save();render();}else{$('download').focus();}};
-$('download').onclick=()=>{state.consent_acknowledged=$('consent').checked;if(!state.consent_acknowledged){$('message').textContent='Please tick the consent box before submitting your response.';return;}save();const result={...state,exported_at:new Date().toISOString()};const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));a.href=url;a.download=`kandinsky_answers_${study.study_id.slice(0,10)}_${state.participant_id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1200);$('message').textContent='Your JSON response was downloaded. Send this file to the study owner; no automatic upload occurred.';};
-$('import').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>2_000_000)throw Error('Response file is too large.');const incoming=validate(JSON.parse(await f.text()));if(!confirm('Replace the current browser session with this response file? Download unsaved work first.'))return;state=incoming;save();render();$('message').textContent='Response loaded. You can continue where you left off.';}catch(err){$('message').textContent=err.message;}finally{e.target.value='';}};
-$('reset').onclick=()=>{if(!confirm('Start a new participant? Download current responses first.'))return;state=fresh();save();render();$('message').textContent='A new participant session is ready.';};
-$('studyTag').textContent='Study ID: '+study.study_id.slice(0,12);save();render();
+function newAnswer(sceneId) {
+  return { scene_id: sceneId, audio_id: sceneById.get(sceneId).audio_id,
+    event_fit: null, sync: null, audio_quality: null, artifact_severity: null,
+    unwanted_music_or_speech: null, would_use: null, note: '' };
+}
+function fresh() {
+  return { schema: 'kandinsky-v2a-listening-response-v2', study_id: study.study_id,
+    participant_id: uid(), alias: '', device: 'unspecified', consent_acknowledged: false,
+    scene_order: shuffle(study.scenes.map(scene => scene.id)), index: 0,
+    updated_at: new Date().toISOString(), answers: study.scenes.map(scene => newAnswer(scene.id)) };
+}
+function validate(value) {
+  if (!value || value.schema !== 'kandinsky-v2a-listening-response-v2' || value.study_id !== study.study_id)
+    throw Error('This response file belongs to a different study.');
+  const ids = new Set(study.scenes.map(scene => scene.id));
+  if (!/^[a-f0-9]{32}$/.test(value.participant_id) || !Array.isArray(value.scene_order) ||
+      value.scene_order.length !== ids.size || new Set(value.scene_order).size !== ids.size ||
+      value.scene_order.some(id => !ids.has(id))) throw Error('Invalid participant or scene order.');
+  if (!Array.isArray(value.answers) || value.answers.length !== ids.size ||
+      new Set(value.answers.map(answer => answer.scene_id)).size !== ids.size ||
+      value.answers.some(answer => !ids.has(answer.scene_id))) throw Error('Scene answers are missing or duplicated.');
+  for (const scene of study.scenes) {
+    const answer = value.answers.find(item => item.scene_id === scene.id);
+    if (answer.audio_id !== scene.audio_id) throw Error('The audio reference for a scene is invalid.');
+    for (const key of ['event_fit', 'sync', 'audio_quality', 'artifact_severity']) {
+      if (answer[key] !== null && (!Number.isInteger(answer[key]) || answer[key] < 1 || answer[key] > 5))
+        throw Error('Ratings must be from 1 to 5.');
+    }
+    if (answer.unwanted_music_or_speech !== null && typeof answer.unwanted_music_or_speech !== 'boolean')
+      throw Error('Unwanted-sound answer is invalid.');
+    if (answer.would_use !== null && !['yes', 'after_edit', 'no'].includes(answer.would_use))
+      throw Error('Use decision is invalid.');
+    if (typeof answer.note !== 'string' || answer.note.length > 1000) throw Error('Scene note is invalid.');
+  }
+  if (typeof value.alias !== 'string' || value.alias.length > 60 ||
+      !['unspecified', 'headphones', 'speakers', 'phone'].includes(value.device) ||
+      typeof value.consent_acknowledged !== 'boolean' || !Number.isInteger(value.index) ||
+      value.index < 0 || value.index >= ids.size) throw Error('Participant details are invalid.');
+  return value;
+}
+try { state = validate(JSON.parse(localStorage.getItem(storageKey) || 'null')); }
+catch { state = fresh(); }
 
+function currentId() { return state.scene_order[state.index]; }
+function answerFor(sceneId = currentId()) { return state.answers.find(answer => answer.scene_id === sceneId); }
+function complete(answer) {
+  return ['event_fit', 'sync', 'audio_quality', 'artifact_severity', 'unwanted_music_or_speech', 'would_use']
+    .every(key => answer[key] !== null);
+}
+function save() {
+  state.updated_at = new Date().toISOString();
+  try { localStorage.setItem(storageKey, JSON.stringify(state)); $('saved').textContent = 'Saved in this browser'; }
+  catch { $('saved').textContent = 'Browser storage unavailable — download JSON to keep your work'; }
+}
+function options(select, entries) {
+  const first = document.createElement('option'); first.value = ''; first.textContent = 'Select'; select.append(first);
+  for (const [value, label] of entries) {
+    const option = document.createElement('option'); option.value = value; option.textContent = label; select.append(option);
+  }
+}
+function rating(label, key, answer, entries) {
+  const wrapper = document.createElement('div'), title = document.createElement('label'), select = document.createElement('select');
+  title.textContent = label; select.setAttribute('aria-label', label); options(select, entries);
+  select.value = answer[key] === null ? '' : String(answer[key]);
+  select.onchange = () => {
+    answer[key] = select.value === '' ? null :
+      key === 'unwanted_music_or_speech' ? select.value === 'yes' :
+      key === 'would_use' ? select.value : Number(select.value);
+    save(); refresh();
+  };
+  wrapper.append(title, select); return wrapper;
+}
+function stopMedia() { $('video').pause(); $('audio').pause(); }
+function render() {
+  stopMedia();
+  const sceneId = currentId(), scene = sceneById.get(sceneId), answer = answerFor(sceneId);
+  $('position').textContent = 'SCENE ' + String(state.index + 1).padStart(2, '0') + ' / ' + study.scenes.length;
+  $('sceneTitle').textContent = scene.label; $('alias').value = state.alias; $('device').value = state.device;
+  $('consent').checked = state.consent_acknowledged; $('sceneNote').value = answer.note;
+  $('video').src = new URL(scene.video, document.baseURI).href;
+  $('audio').src = new URL(scene.audio, document.baseURI).href;
+  $('sceneNote').oninput = () => { answer.note = $('sceneNote').value; save(); };
+  $('ratings').replaceChildren(
+    rating('Scene fit', 'event_fit', answer, [[1, '1 · Poor fit'], [2, '2'], [3, '3 · Fair'], [4, '4'], [5, '5 · Excellent fit']]),
+    rating('Audio-video timing', 'sync', answer, [[1, '1 · Poor'], [2, '2'], [3, '3 · Fair'], [4, '4'], [5, '5 · Excellent']]),
+    rating('Sound quality', 'audio_quality', answer, [[1, '1 · Poor'], [2, '2'], [3, '3 · Fair'], [4, '4'], [5, '5 · Excellent']]),
+    rating('Noise / artifacts', 'artifact_severity', answer, [[1, '1 · None'], [2, '2'], [3, '3 · Moderate'], [4, '4'], [5, '5 · Severe']]),
+    rating('Unwanted music or speech?', 'unwanted_music_or_speech', answer, [['no', 'No'], ['yes', 'Yes']]),
+    rating('Would you keep it?', 'would_use', answer, [['yes', 'Yes'], ['after_edit', 'After editing'], ['no', 'No']])
+  );
+  $('prev').disabled = state.index === 0;
+  $('next').textContent = state.index === study.scenes.length - 1 ? 'Finish and download ↓' : 'Next scene →';
+  refresh();
+}
+function refresh() {
+  const done = state.answers.filter(complete).length;
+  $('progress').max = study.scenes.length; $('progress').value = done;
+  $('progressLabel').textContent = done + ' / ' + study.scenes.length + ' scenes rated';
+  $('state').textContent = complete(answerFor()) ? 'RATED' : 'IN PROGRESS';
+  $('deliveryTitle').textContent = done === study.scenes.length ? 'Study complete — thank you' : 'Take a break or finish';
+  $('jump').replaceChildren(...state.scene_order.map((sceneId, index) => {
+    const button = document.createElement('button');
+    button.textContent = String(index + 1); button.className = complete(answerFor(sceneId)) ? 'done' : '';
+    button.setAttribute('aria-current', String(index === state.index));
+    button.setAttribute('aria-label', 'Scene ' + (index + 1) + ', ' + (complete(answerFor(sceneId)) ? 'completed' : 'incomplete'));
+    button.onclick = () => { state.index = index; save(); render(); }; return button;
+  }));
+}
+$('alias').oninput = () => { state.alias = $('alias').value; save(); };
+$('device').onchange = () => { state.device = $('device').value; save(); };
+$('consent').onchange = () => { state.consent_acknowledged = $('consent').checked; save(); };
+$('prev').onclick = () => { if (state.index > 0) { state.index--; save(); render(); } };
+$('next').onclick = () => {
+  if (state.index < study.scenes.length - 1) { state.index++; save(); render(); }
+  else $('download').focus();
+};
+$('download').onclick = () => {
+  state.consent_acknowledged = $('consent').checked;
+  if (!state.consent_acknowledged) { $('message').textContent = 'Please tick the consent box before submitting your response.'; return; }
+  save();
+  const response = { ...state, exported_at: new Date().toISOString() };
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' }));
+  link.href = url; link.download = 'kandinsky_answers_' + study.study_id.slice(0, 10) + '_' + state.participant_id + '.json';
+  link.click(); setTimeout(() => URL.revokeObjectURL(url), 1200);
+  $('message').textContent = 'Your JSON response was downloaded. Send this file to the study owner; no automatic upload occurred.';
+};
+$('import').onchange = async event => {
+  const file = event.target.files[0]; if (!file) return;
+  try {
+    if (file.size > 2_000_000) throw Error('Response file is too large.');
+    const incoming = validate(JSON.parse(await file.text()));
+    if (!confirm('Replace the current browser session with this response file? Download unsaved work first.')) return;
+    state = incoming; save(); render(); $('message').textContent = 'Response loaded. You can continue where you left off.';
+  } catch (error) { $('message').textContent = error.message; }
+  finally { event.target.value = ''; }
+};
+$('reset').onclick = () => {
+  if (!confirm('Start a new participant? Download current responses first.')) return;
+  state = fresh(); save(); render(); $('message').textContent = 'A new participant session is ready.';
+};
+$('studyTag').textContent = 'Study ID: ' + study.study_id.slice(0, 12);
+save(); render();
