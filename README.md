@@ -51,11 +51,12 @@ The seed-sweep notebook regenerates a selected five-second video window with see
 
 ## Multi-video listener pilot
 
-The multi-video notebook generates two blinded seed candidates for each of 2–5 short scenes, then creates an offline participant review package. It records scene fit, video/audio timing, sound quality, artifact severity, unwanted music/speech, and whether each candidate should be kept. It does not train a model or compare against the existing Orfeo/ElevenLabs workflow.
+The multi-video notebook automatically downloads six CC0 clips from Wikimedia Commons, adds a short event prompt to each, and generates one five-second Kandinsky sound per scene with a fixed seed. It then creates an offline participant review package. Raters score scene fit, video/audio timing, sound quality, artifact severity, unwanted music/speech, and whether they would keep each sound. There are no seed alternatives, manual video uploads, or model training.
 
 - [Open the multi-video review notebook in Colab](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_MultiVideo_Review.ipynb)
 - [Turkish study instructions and limitations](docs/MULTI_VIDEO_REVIEW_TR.md)
-- Participants receive only `Participant_Package.zip`; the seed/prompt mapping stays in `researcher_key.json`.
+- Source videos are individually marked CC0 1.0 on their Wikimedia Commons file pages. The notebook records each page and checksum in the researcher bundle.
+- Participants receive only Participant_Package.zip; the prompt/seed mapping stays in researcher_key.json.
 - [Review package builder](tools/build_kandinsky_review.py) and [response aggregator](tools/aggregate_kandinsky_review.py)
 
 ## Productization plan
