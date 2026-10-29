@@ -1,4 +1,4 @@
-"""Build a blinded, offline listening study from a Kandinsky V2A review bundle."""
+"""Build a blinded, offline one-audio-per-video Kandinsky listening study."""
 import argparse
 import hashlib
 import json
@@ -14,111 +14,108 @@ SAFE_ID = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 def safe_member(archive, name):
     path = PurePosixPath(name)
     if path.is_absolute() or ".." in path.parts or "\\" in name:
-        raise ValueError(f"Güvensiz arşiv yolu: {name}")
+        raise ValueError(f"Unsafe archive path: {name}")
     try:
         return archive.read(path.as_posix())
     except KeyError as exc:
-        raise ValueError(f"Paket içinde dosya yok: {name}") from exc
+        raise ValueError(f"Missing file in bundle: {name}") from exc
 
 
 def build(bundle_path, output_dir):
     bundle_path = Path(bundle_path)
     output_dir = Path(output_dir)
     if output_dir.exists():
-        raise ValueError("Mevcut yanıtların üzerine yazmamak için yeni bir çıktı klasörü seçin.")
+        raise ValueError("Choose a new output folder so prior responses are not overwritten.")
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(bundle_path) as archive:
         if archive.testzip() is not None:
-            raise ValueError("Girdi ZIP'inin bütünlüğü doğrulanamadı.")
+            raise ValueError("Input ZIP integrity check failed.")
         manifest = json.loads(safe_member(archive, "manifest.json"))
-        if manifest.get("schema") != "kandinsky-v2a-review-bundle-v1":
-            raise ValueError("Beklenen Kandinsky V2A değerlendirme paketi değil.")
+        if manifest.get("schema") != "kandinsky-v2a-review-bundle-v2":
+            raise ValueError("Expected a one-audio-per-video Kandinsky review bundle.")
         scenes = manifest.get("scenes")
         candidates = manifest.get("candidates")
         if not isinstance(scenes, list) or not 2 <= len(scenes) <= 20:
-            raise ValueError("2–20 arası sahne gerekli.")
-        if not isinstance(candidates, list) or len(candidates) > 60:
-            raise ValueError("En az bir aday ve en fazla 60 aday gerekli.")
+            raise ValueError("The bundle must contain 2–20 scenes.")
+        if not isinstance(candidates, list) or len(candidates) != len(scenes):
+            raise ValueError("Each scene must have exactly one generated audio.")
         scene_ids = [s.get("scene_id") for s in scenes]
         candidate_ids = [c.get("candidate_id") for c in candidates]
         if len(set(scene_ids)) != len(scene_ids) or len(set(candidate_ids)) != len(candidate_ids):
-            raise ValueError("Sahne ve aday kimlikleri benzersiz olmalı.")
+            raise ValueError("Scene and audio IDs must be unique.")
         if not all(isinstance(x, str) and SAFE_ID.fullmatch(x) for x in scene_ids + candidate_ids):
-            raise ValueError("Kimliklerde yalnızca harf, sayı, tire ve alt çizgi kullanılabilir.")
+            raise ValueError("IDs may contain only letters, numbers, hyphens, and underscores.")
+
+        candidate_by_scene = {}
+        for candidate in candidates:
+            sid = candidate.get("scene_id")
+            if sid not in scene_ids or sid in candidate_by_scene:
+                raise ValueError("Each scene must map to one unique generated audio.")
+            candidate_by_scene[sid] = candidate
+        if set(candidate_by_scene) != set(scene_ids):
+            raise ValueError("A scene has no generated audio.")
 
         output_dir.mkdir(parents=True)
         media_dir = output_dir / "assets"
         (media_dir / "videos").mkdir(parents=True)
         (media_dir / "audio").mkdir(parents=True)
-        public_scenes, private_scenes = [], {}
-        by_scene = {sid: [] for sid in scene_ids}
-        used_names = set()
+        public_scenes, private_scenes, private_audio = [], {}, {}
 
         for idx, scene in enumerate(scenes, start=1):
             sid = scene["scene_id"]
-            if sid in used_names:
-                raise ValueError("Yinelenen sahne kimliği.")
-            used_names.add(sid)
             video_bytes = safe_member(archive, scene["video_path"])
             if b"ftyp" not in video_bytes[:64]:
-                raise ValueError(f"Sahne {sid} için MP4 başlığı doğrulanamadı.")
-            expected = scene.get("video_sha256")
-            if expected and hashlib.sha256(video_bytes).hexdigest() != expected:
-                raise ValueError(f"Sahne videosu SHA-256 ile eşleşmiyor: {sid}")
+                raise ValueError(f"Scene video is not a valid MP4: {sid}")
+            if scene.get("video_sha256") and hashlib.sha256(video_bytes).hexdigest() != scene["video_sha256"]:
+                raise ValueError(f"Scene video SHA-256 mismatch: {sid}")
+            candidate = candidate_by_scene[sid]
+            audio_bytes = safe_member(archive, candidate["audio_path"])
+            if not audio_bytes.startswith(b"RIFF") or audio_bytes[8:12] != b"WAVE":
+                raise ValueError(f"Generated audio is not a WAV: {sid}")
+            if candidate.get("audio_sha256") and hashlib.sha256(audio_bytes).hexdigest() != candidate["audio_sha256"]:
+                raise ValueError(f"Generated audio SHA-256 mismatch: {sid}")
+            generated_mp4 = safe_member(archive, candidate["generated_mp4_path"])
+            if candidate.get("output_mp4_sha256") and hashlib.sha256(generated_mp4).hexdigest() != candidate["output_mp4_sha256"]:
+                raise ValueError(f"Kandinsky output SHA-256 mismatch: {sid}")
+
             video_rel = f"assets/videos/scene_{idx:02d}.mp4"
+            audio_rel = f"assets/audio/scene_{idx:02d}.wav"
             (output_dir / video_rel).write_bytes(video_bytes)
-            public_scenes.append({"id": sid, "label": f"Scene {idx}", "video": video_rel, "candidates": []})
+            (output_dir / audio_rel).write_bytes(audio_bytes)
+            public_scenes.append({
+                "id": sid, "audio_id": candidate["candidate_id"], "label": f"Scene {idx}",
+                "video": video_rel, "audio": audio_rel,
+            })
             private_scenes[sid] = {
                 "label": scene.get("label", f"Scene {idx}"),
                 "source_name": scene.get("source_name"),
-                "source_video_sha256": scene.get("source_sha256"),
-                "review_video_sha256": expected,
+                "source_sha256": scene.get("source_sha256"),
+                "source_page": scene.get("source_page"),
+                "source_license": scene.get("source_license"),
+                "review_video_sha256": scene.get("video_sha256"),
                 "start_seconds": scene.get("start_seconds"),
                 "event_prompt": scene.get("event_prompt"),
             }
-
-        cand_key = {}
-        for idx, candidate in enumerate(candidates, start=1):
-            cid, sid = candidate["candidate_id"], candidate.get("scene_id")
-            if sid not in by_scene:
-                raise ValueError(f"Tanımsız sahne kimliği olan aday: {cid}")
-            audio = safe_member(archive, candidate["audio_path"])
-            if not audio.startswith(b"RIFF") or audio[8:12] != b"WAVE":
-                raise ValueError(f"Aday ses WAV değil: {cid}")
-            expected = candidate.get("audio_sha256")
-            if expected and hashlib.sha256(audio).hexdigest() != expected:
-                raise ValueError(f"Aday ses SHA-256 ile eşleşmiyor: {cid}")
-            output_mp4 = safe_member(archive, candidate["generated_mp4_path"])
-            expected_mp4 = candidate.get("output_mp4_sha256")
-            if expected_mp4 and hashlib.sha256(output_mp4).hexdigest() != expected_mp4:
-                raise ValueError(f"Aday Kandinsky çıktısı SHA-256 ile eşleşmiyor: {cid}")
-            audio_rel = f"assets/audio/candidate_{idx:03d}.wav"
-            (output_dir / audio_rel).write_bytes(audio)
-            candidate_public = {"id": cid, "audio": audio_rel}
-            by_scene[sid].append(candidate_public)
-            cand_key[cid] = {
+            private_audio[candidate["candidate_id"]] = {
                 "scene_id": sid,
                 "seed": candidate.get("seed"),
-                "candidate_index": candidate.get("candidate_index"),
                 "generation_seconds": candidate.get("generation_seconds"),
                 "output_mp4_sha256": candidate.get("output_mp4_sha256"),
-                "audio_sha256": expected,
+                "audio_sha256": candidate.get("audio_sha256"),
                 "checkpoint": manifest.get("model", {}).get("checkpoint"),
                 "model": manifest.get("model", {}).get("name"),
                 "source_commit": manifest.get("source_commit"),
-                "event_prompt": candidate.get("event_prompt", private_scenes[sid]["event_prompt"]),
+                "event_prompt": candidate.get("event_prompt", scene.get("event_prompt")),
             }
 
-        for scene in public_scenes:
-            scene["candidates"] = by_scene[scene["id"]]
-            if len(scene["candidates"]) < 2:
-                raise ValueError(f"{scene['label']} için en az iki seed adayı gerekli.")
-
-        study_digest = hashlib.sha256(bundle_path.read_bytes()).hexdigest()
-        study_id = study_digest[:24]
-        public = {"schema": "kandinsky-v2a-listening-study-v1", "study_id": study_id,
-                  "title": manifest.get("study_title", "Video-to-audio listening study"),
-                  "scenes": public_scenes}
+        digest = hashlib.sha256(bundle_path.read_bytes()).hexdigest()
+        study_id = digest[:24]
+        public = {
+            "schema": "kandinsky-v2a-listening-study-v2",
+            "study_id": study_id,
+            "title": manifest.get("study_title", "Video-to-audio listening study"),
+            "scenes": public_scenes,
+        }
         page = (APP / "index.html").read_text(encoding="utf-8")
         page = page.replace("/*__STYLE__*/", (APP / "style.css").read_text(encoding="utf-8"))
         page = page.replace("/*__APP__*/", (APP / "app.js").read_text(encoding="utf-8"))
@@ -126,40 +123,56 @@ def build(bundle_path, output_dir):
         (output_dir / "Review.html").write_text(page, encoding="utf-8")
 
         researcher_key = {
-            "schema": "kandinsky-v2a-listening-key-v1", "study_id": study_id,
-            "bundle_sha256": study_digest, "model": manifest.get("model"),
-            "source_commit": manifest.get("source_commit"), "scenes": private_scenes,
-            "candidates": cand_key,
+            "schema": "kandinsky-v2a-listening-key-v2",
+            "study_id": study_id,
+            "bundle_sha256": digest,
+            "model": manifest.get("model"),
+            "source_commit": manifest.get("source_commit"),
+            "scenes": private_scenes,
+            "audio": private_audio,
             "limitations": [
-                "Bu değerlendirme küçük bir pilot kümesidir; genel performans oranı değildir.",
-                "Puanlar öznel algıyı ölçer; otomatik video-ses senkron metriği değildir.",
-                "Aynı video için seed adayları bağımsız veri örnekleri değildir.",
+                "This is a small directional pilot, not a general performance rate.",
+                "Prompt wording is part of this pilot; the study does not isolate video-only conditioning.",
+                "Listener scores are subjective and are not an automatic synchronization metric.",
+                "One fixed seed is used per scene; this study does not compare seeds.",
             ],
         }
         (output_dir / "researcher_key.json").write_text(
             json.dumps(researcher_key, ensure_ascii=False, indent=2), encoding="utf-8")
+        sources = ["VIDEO SOURCES AND LICENSES", "", "All listed video files are marked CC0 1.0 on their Wikimedia Commons file pages."]
+        for idx, scene in enumerate(scenes, start=1):
+            sources.extend(["", f"Scene {idx}: {scene.get('source_name', 'source video')}",
+                            f"Source: {scene.get('source_page', '')}",
+                            f"License: {scene.get('source_license', 'CC0 1.0')}"])
+        (output_dir / "VIDEO_SOURCES.txt").write_text("\n".join(sources) + "\n", encoding="utf-8")
         instructions = (
             "KANDINSKY VIDEO-TO-AUDIO REVIEW\n\n"
-            "1. Extract this ZIP to a folder. Keep the assets folder next to Review.html.\n"
-            "2. Open Review.html in Chrome, Edge, or Firefox. Internet and an account are not required.\n"
-            "3. Watch the muted scene, listen to every candidate, and rate each sound.\n"
-            "4. Download your JSON response and send that file to the study owner.\n"
-            "Responses stay in this browser until downloaded. No automatic upload occurs.\n"
-            "Do not share researcher_key.json with participants. The pack includes the video and audio files.\n"
+            "1. Extract this ZIP and keep the assets folder next to Review.html.\n"
+            "2. Open Review.html in Chrome, Edge, or Firefox. No account or internet is required.\n"
+            "3. Watch each muted clip, listen to its generated sound, and rate the match.\n"
+            "4. Download your JSON response and send that file to the study owner.\n\n"
+            "Responses stay in this browser until downloaded. Nothing uploads automatically.\n"
+            "The pack contains CC0 source videos and generated audio. See VIDEO_SOURCES.txt.\n"
         )
         (output_dir / "README_PARTICIPANT.txt").write_text(instructions, encoding="utf-8")
         participant_zip = output_dir / "Participant_Package.zip"
         with zipfile.ZipFile(participant_zip, "w", zipfile.ZIP_DEFLATED) as out:
-            for path in [output_dir / "Review.html", output_dir / "README_PARTICIPANT.txt"]:
+            for path in [output_dir / "Review.html", output_dir / "README_PARTICIPANT.txt",
+                         output_dir / "VIDEO_SOURCES.txt"]:
                 out.write(path, path.relative_to(output_dir).as_posix())
             for path in media_dir.rglob("*"):
                 if path.is_file():
                     out.write(path, path.relative_to(output_dir).as_posix())
-    return {"study_id": study_id, "scenes": len(scenes), "candidates": len(candidates),
-            "participant_zip": str(participant_zip.resolve()),
-            "review_page": str((output_dir / 'Review.html').resolve()),
-            "researcher_key": str((output_dir / 'researcher_key.json').resolve()),
-            "participant_package_excludes_researcher_key": True}
+
+    return {
+        "study_id": study_id,
+        "scenes": len(scenes),
+        "generated_audio_files": len(candidates),
+        "participant_zip": str(participant_zip.resolve()),
+        "review_page": str((output_dir / "Review.html").resolve()),
+        "researcher_key": str((output_dir / "researcher_key.json").resolve()),
+        "participant_package_excludes_researcher_key": True,
+    }
 
 
 if __name__ == "__main__":
@@ -168,4 +181,3 @@ if __name__ == "__main__":
     parser.add_argument("output_directory", type=Path)
     args = parser.parse_args()
     print(json.dumps(build(args.bundle_zip, args.output_directory), ensure_ascii=False, indent=2))
-
