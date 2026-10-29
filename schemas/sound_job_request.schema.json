@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AytugSahinkanat/kandinsky-v2a-colab/blob/main/schemas/sound_job_request.schema.json",
+  "title": "Orfeo Sound Generation Job Request v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source",
+    "window",
+    "intent",
+    "prompt_policy",
+    "generation",
+    "mix"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "video_ref"
+      ],
+      "properties": {
+        "video_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Orfeo asset ID or an authorized video URI."
+        },
+        "duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_seconds",
+        "duration_seconds"
+      ],
+      "properties": {
+        "start_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "duration_seconds": {
+          "const": 5,
+          "description": "Current Kandinsky V2A pilot uses a 5-second window."
+        }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Examples: ambience, footsteps, impact, door, other."
+        },
+        "action": {
+          "type": "string"
+        },
+        "material": {
+          "type": "string"
+        },
+        "intensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Metadata only; not a direct model condition yet."
+        },
+        "size_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "speed_m_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "distance_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "environment": {
+          "type": "string"
+        },
+        "acoustic_space": {
+          "type": "string"
+        }
+      }
+    },
+    "prompt_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "manual",
+            "engine_template",
+            "video_caption"
+          ]
+        },
+        "manual_text": {
+          "type": "string",
+          "maxLength": 240,
+          "description": "Required for manual mode; compiler supplies text for automatic modes."
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "checkpoint",
+        "candidate_count",
+        "seed_policy"
+      ],
+      "properties": {
+        "provider": {
+          "const": "kandinsky_v2a"
+        },
+        "checkpoint": {
+          "enum": [
+            "lite-distill",
+            "pro-distill"
+          ]
+        },
+        "candidate_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "seed_policy": {
+          "enum": [
+            "fixed",
+            "vary"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "mix": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gain_db": {
+          "type": "number",
+          "minimum": -24,
+          "maximum": 12,
+          "default": 0,
+          "description": "Post-generation gain; not physical impact strength."
+        },
+        "distance_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reverb_send": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "pan": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "default": 0
+        }
+      }
+    }
+  }
+}
