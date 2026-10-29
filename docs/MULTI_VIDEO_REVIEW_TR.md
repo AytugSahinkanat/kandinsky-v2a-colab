@@ -2,55 +2,43 @@
 
 ## Amaç
 
-Kandinsky'nin mevcut video + kısa metin istemi üretimini birkaç oyun sahnesinde, tekrar üretilebilir biçimde dinleyiciye değerlendirtmek. Bu bir eğitim işi değildir. Her video için aynı istem ve aynı model ayarları korunur; yalnızca iki seed değiştirilir. İlk pilot böylece hem sahneler arasındaki farkı hem seed'in aday seçimine katkısını görür.
+Altı farklı sahnede Kandinsky'nin video + kısa ses prompt'u ile ürettiği sesleri dinleyicilere puanlatmak. Bu bir eğitim işi değil; her video için tek üretim var ve farklı seed karşılaştırması yapılmıyor.
 
-## İlk deney kapsamı
+## Deney kapsamı
 
-- 2–5 kısa video sahnesi; pratik başlangıç önerisi 3 sahne.
-- Her sahne için tek, beş saniyelik pencere. Olay daha sonra oluyorsa `start_seconds` o ana göre ayarlanır.
-- Kandinsky 6.0 Lite Distill ve aynı kısa, ses odaklı istem.
-- Her sahne için seed 42 ve 123; toplam 6 aday (3 sahne seçilirse).
-- Değerlendirme boyutları: sahne/olay uyumu, video-ses zamanlaması, ses kalitesi, artefakt/gürültü, istenmeyen müzik/konuşma ve adayı üründe tutma kararı.
+- Wikimedia Commons üzerinde CC0 1.0 olarak işaretlenmiş altı kaynak klip.
+- Şehirde yürüyen insanlar, ledge üzerinde yürüyen küçük kuş, kameraya bakan kuş, akan dere, şömine ve açılan kapı.
+- Her kaynaktan beş saniyelik sessiz video penceresi hazırlanır; kaynak videonun sesi atılır.
+- Her sahne için kısa olay/ses prompt'u notebook içinde hazırdır. Promptlar Kandinsky'ye videoyla birlikte verilir.
+- Aynı Kandinsky 6.0 Lite Distill ayarı ve seed 42 ile video başına bir üretim yapılır.
+- Altı değerlendirme ölçüsü: sahne uyumu, video-ses zamanlaması, ses kalitesi, gürültü/artefakt şiddeti, istenmeyen müzik veya konuşma, sesi kullanma kararı.
 
-İki seed arasında aday farkı görmek, seed'lerden birinin her zaman daha iyi olduğunu kanıtlamaz. Üç sahne küçük ve yön gösterici bir pilot sağlar; genel başarı oranı çıkarmaz. Bu aşama Kandinsky'yi kendi içinde puanlar, ElevenLabs veya mevcut Orfeo akışıyla henüz karşılaştırmaz.
+Bu, küçük ve yön gösterici bir insan değerlendirmesidir. Genel başarı yüzdesi çıkarmaz; prompt etkisini videodan ayırmaz; yalnızca seed 42 ile üretilen örnekleri kapsar.
 
 ## Colab kullanımı
 
-1. `Kandinsky_V2A_MultiVideo_Review.ipynb` dosyasını Colab'de A100 runtime ile aç.
-2. İki-beş MP4/MOV/M4V video yükle.
-3. Notebook'un yazdırdığı tam dosya adlarını `SCENE_CONFIG` içine gir. Her dosya için kısa olay prompt'u ve olayı içeren `start_seconds` ayarla.
-4. Hücreleri sırayla çalıştır. Her sahne iki seed ile üretilir; CLI her adayda modeli yeniden yükleyebileceğinden üretimler ardışık ilerler.
-5. `Kandinsky_Review_Researcher_Artifacts.zip` dosyasını indir. Çıkardığında araştırmacı anahtarını ve tüm çıktıları koru. Katılımcıya **yalnızca** içindeki `Participant_Package.zip` dosyasını ver.
+1. Kandinsky_V2A_MultiVideo_Review.ipynb dosyasını GitHub üzerinden Colab'de aç.
+2. A100 runtime seçip hücreleri sırayla çalıştır.
+3. Notebook videoları Wikimedia Commons'tan kendisi indirir. Video yükleme hücresi veya elle dosya adı kopyalama yoktur.
+4. Her video için tek Kandinsky üretimi çalışır. Üretimler sırayla ilerler; model her üretim komutunda yeniden yüklenebilir.
+5. Kandinsky_Six_Scene_Review_Artifacts.zip arşivini indir. Katılımcılara yalnızca içindeki Participant_Package.zip dosyasını gönder; researcher_key.json ve generation_bundle.zip araştırmacıda kalır.
 
-### Katılımcı akışı
+## Katılımcı akışı
 
-Katılımcı ZIP'i çıkarır ve `Review.html` dosyasını Chrome, Edge veya Firefox'ta açar. İnternet veya hesap gerekmez. Video sessiz oynatılır; aday sesler ayrıca çalınır. Sahne ve aday sırası katılımcı başına karıştırılır. Puanlar tarayıcıda tutulur; kişi tamamlayınca JSON yanıtını indirip araştırmacıya iletir. Sunucuya otomatik yükleme yoktur.
+Katılımcı ZIP'i çıkarıp Review.html dosyasını Chrome, Edge veya Firefox'ta açar. İnternet veya hesap gerekmez. Video sessiz oynatılır, üretilen ses tek bir oynatıcıdan dinlenir. Sahne sırası katılımcı başına karıştırılır. Her kişi yanıt JSON'unu indirip araştırmacıya iletir; sunucuya otomatik yükleme yapılmaz.
 
-Katılımcı paketi kaynak video kesitlerini ve üretilmiş sesleri içerir. Dışarı paylaşılmasına uygun olmayan müşteri/özel görüntüleri bu şekilde dağıtma. Herkese açık web sayfasına yüklemek ayrıca erişim kararıdır; bu notebook kendiliğinden yayımlama yapmaz.
+Katılımcı paketi videoları ve sesleri içerir. Kaynak listesi ile CC0 sayfa bağlantıları VIDEO_SOURCES.txt dosyasındadır. Bu format erişim kısıtlaması sağlamaz; özel veya paylaşılmaması gereken görüntüler için kullanılmamalıdır.
 
 ## Yanıtları birleştirme
 
-Katılımcılardan gelen `kandinsky_answers_*.json` dosyalarını ayrı bir klasörde topla. Araştırmacı anahtarını katılımcılara gönderme.
+Katılımcı yanıt JSON'larını ayrı bir klasöre, araştırmacı anahtarını da paketin dışına koy. Ardından şu komutu çalıştır:
 
-```powershell
-python tools/aggregate_kandinsky_review.py "review/researcher_key.json" "review/responses" "review/summary.json"
-```
+    python tools/aggregate_kandinsky_review.py "researcher_key.json" "responses" "summary.json"
 
-Özet; her seed adayı için puan ortalamalarını, istenmeyen ses sayısını, üründe tutma kararlarını ve sahne başına tercih sayılarını verir. Ortalama puanlar başarı yüzdesi değildir. Katılımcı sayısı azsa bunlar yalnızca yön gösterici insan geri bildirimidir.
+Özet sahne başına puan ortalamalarını, istenmeyen ses bildirimlerini, kullanma kararlarını ve yazılı notları verir. Gürültü/artefakt puanında düşük değer daha iyidir; diğer sayısal puanlarda yüksek değer daha iyidir.
 
-Artefakt/gürültü puanında **düşük değer daha iyidir** (1 = yok, 5 = şiddetli). Diğer üç puanda yüksek değer daha iyidir.
+## Lisans ve iddia sınırları
 
-## Eşleştirme ve mahremiyet
+Notebook içindeki her video bağlantısı, Commons sayfasında CC0 1.0 olarak işaretlenmiş bir dosyaya gider; kaynak adı, sayfa, çözümlenen indirme URL'si ve SHA-256 araştırma paketinde kaydedilir. Bu, bu videoların lisans bilgisini izlenebilir kılar. Kandinsky modelinin, ağırlıklarının ve bağımlılıklarının lisansı ayrı konudur; bu dinleme paketi model lisansına izin eklemez.
 
-- Katılımcı sayfası seed, model revizyonu ve istem metnini göstermez. Bunların eşlemesi yalnızca `researcher_key.json` içinde saklanır.
-- `Participant_Package.zip` araştırmacı anahtarını içermez; indirilen üst araştırmacı arşivini paylaşma.
-- İsim/e-posta istenmez. Katılımcı JSON'u kullanıcı takma adını yalnızca kendisi girerse içerir.
-- Puanlamalar ağ üzerinden gönderilmez. Bu yüzden yanıt JSON'unu indirme ve geri iletme katılımcının sorumluluğundadır.
-- Video ve ses dosyaları katılımcı paketinden çıkarılabilir; bu format erişim kısıtlaması sağlamaz.
-
-## Çıktı / iddia sınırları
-
-Bu çalışma şu anki Kandinsky modelinin video destekli ses üretimini ve seed adayları arasından seçim yapılabilirliğini değerlendirir. Bu, prompt'suz üretim, doğrudan fiziksel parametre kontrolü, ses katmanlarını one-shot olarak ayırma, ürün API'si veya ticari lisans onayı anlamına gelmez. Bunlar ayrı iş kalemleridir.
-
-Model kodu ve ağırlıklar için ticari kullanım ve bağımlılık/lisans denetimi ayrıca sürmelidir. Bu dinleme aracı model ya da medya lisansına yeni bir izin eklemez.
-
+Bu deney prompt'suz üretim, fiziksel parametre kontrolü, ses katmanlarını ayırma, Orfeo/ElevenLabs ile kıyaslama veya ticari kullanıma hazır olma iddiası taşımaz.
