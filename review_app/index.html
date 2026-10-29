@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video-to-Audio Review</title><style>/*__STYLE__*/</style></head>
+<body><header><a class="brand" href="#">◉ SOUND REVIEW</a><span class="badge">LISTENING STUDY</span></header>
+<main><section class="intro"><p class="eyebrow">VIDEO-TO-AUDIO EVALUATION</p><h1>Does the sound belong in this scene?</h1>
+<p>Watch the muted clip, listen to each sound candidate, and rate what you hear. There are no right answers.</p></section>
+<section class="panel setup"><div><label for="alias">Nickname <span>(optional)</span></label><input id="alias" maxlength="60" placeholder="Optional" autocomplete="off"></div>
+<div><label for="device">Listening device</label><select id="device"><option value="unspecified">Prefer not to say</option><option value="headphones">Headphones</option><option value="speakers">Speakers</option><option value="phone">Phone speaker</option></select></div>
+<label class="consent"><input id="consent" type="checkbox"> I agree to submit anonymous listening ratings for this study.</label>
+<p class="privacy">No name or email is required. Responses stay in this browser and are not uploaded automatically. Download your JSON response when finished. The shared package contains the video and audio files.</p></section>
+<div class="progress-heading"><span id="progressLabel"></span><span id="saved" role="status" aria-live="polite"></span></div><progress id="progress" value="0"></progress>
+<section class="panel scene"><div class="scene-heading"><span id="position" class="eyebrow"></span><span id="state" class="badge"></span></div><h2 id="sceneTitle"></h2>
+<p class="subtle">Watch the clip first. Its audio is muted; use the players below for the generated candidates.</p><video id="video" controls muted playsinline preload="metadata"></video>
+<div id="candidates" class="candidates"></div><fieldset class="preference"><legend>Which candidate would you keep for this scene?</legend><div id="bestCandidate" class="choice-row"></div></fieldset>
+<label for="sceneNote">Scene note <span>(optional)</span></label><textarea id="sceneNote" rows="2" maxlength="1000" placeholder="What worked or felt out of place?"></textarea>
+<nav class="navigation"><button id="prev" class="secondary">← Previous scene</button><button id="next" class="primary">Next scene →</button></nav></section>
+<section class="panel overview"><h2>Scenes</h2><p class="subtle">Scene order is randomized for each participant. You can return to any scene.</p><div id="jump" class="jump"></div></section>
+<section class="panel delivery"><div><h2 id="deliveryTitle">Take a break or finish</h2><p>Download your response JSON and send it to the study owner. You can resume later by importing the same file.</p></div><button id="download" class="primary">↓ Download response</button>
+<div class="utilities"><label class="file-button">Import response<input id="import" type="file" accept="application/json,.json"></label><button id="reset" class="secondary">Start new participant</button></div><p id="message" role="status" aria-live="polite"></p></section>
+<footer>Rate each candidate on fit, timing, sound quality, and artifacts. A small pilot is useful feedback, not a general success rate. <span id="studyTag"></span></footer>
+</main><script id="study" type="application/json">/*__STUDY__*/</script><script>/*__APP__*/</script></body></html>
+
