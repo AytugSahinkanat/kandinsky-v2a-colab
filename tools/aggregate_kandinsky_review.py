@@ -1,4 +1,4 @@
-"""Aggregate returned blinded Kandinsky V2A listener JSON files."""
+"""Aggregate listener ratings for one generated audio per video scene."""
 import argparse
 from collections import defaultdict
 import json
@@ -7,18 +7,25 @@ import re
 
 
 def aggregate(key, responses):
-    if key.get("schema") != "kandinsky-v2a-listening-key-v1":
+    if key.get("schema") != "kandinsky-v2a-listening-key-v2":
         raise ValueError("Researcher key schema is not recognized.")
-    candidate_map, scene_map = key["candidates"], key["scenes"]
+    scenes = key["scenes"]
+    audio = key["audio"]
+    scene_ids = set(scenes)
+    audio_by_scene = {meta["scene_id"]: aid for aid, meta in audio.items()}
+    if set(audio_by_scene) != scene_ids or len(audio_by_scene) != len(audio):
+        raise ValueError("Researcher key must map exactly one audio to every scene.")
+
     seen = set()
-    stats = defaultdict(lambda: {"event_fit": [], "sync": [], "audio_quality": [],
-                                  "artifact_severity": [], "unwanted": 0, "would_use": defaultdict(int),
-                                  "best_count": 0, "best_total": 0, "no_clear_winner": 0})
-    per_scene = defaultdict(lambda: {"participants": 0, "best_candidate_counts": defaultdict(int),
-                                     "no_clear_winner_count": 0})
+    stats = defaultdict(lambda: {
+        "participants": 0,
+        "event_fit": [], "sync": [], "audio_quality": [], "artifact_severity": [],
+        "unwanted_music_or_speech_count": 0, "would_use_counts": defaultdict(int),
+        "notes": [],
+    })
     incomplete_fields = 0
     for response in responses:
-        if response.get("schema") != "kandinsky-v2a-listening-response-v1" or response.get("study_id") != key["study_id"]:
+        if response.get("schema") != "kandinsky-v2a-listening-response-v2" or response.get("study_id") != key["study_id"]:
             raise ValueError("A response belongs to a different study or schema.")
         if response.get("consent_acknowledged") is not True:
             raise ValueError("A response without participant consent cannot be included.")
@@ -27,81 +34,64 @@ def aggregate(key, responses):
             raise ValueError("Invalid or duplicate participant ID.")
         seen.add(participant)
         answers = response.get("answers")
-        if not isinstance(answers, list) or len(answers) != len(scene_map) or {a.get("scene_id") for a in answers} != set(scene_map):
+        if not isinstance(answers, list) or len(answers) != len(scene_ids) or {a.get("scene_id") for a in answers} != scene_ids:
             raise ValueError("A response is missing a scene or repeats one.")
         for scene_answer in answers:
             sid = scene_answer["scene_id"]
-            candidates = scene_answer.get("candidates", [])
-            expected = {cid for cid, meta in candidate_map.items() if meta["scene_id"] == sid}
-            if not isinstance(candidates, list) or len(candidates) != len(expected) or {a.get("candidate_id") for a in candidates} != expected:
-                raise ValueError(f"Scene {sid} has missing or duplicate candidates.")
-            best = scene_answer.get("best_candidate_id")
-            if best not in expected | {"none", None}:
-                raise ValueError("Invalid preferred candidate.")
-            per_scene[sid]["participants"] += 1
-            if best is not None and best != "none":
-                per_scene[sid]["best_candidate_counts"][best] += 1
-            elif best == "none":
-                per_scene[sid]["no_clear_winner_count"] += 1
-                for cid in expected:
-                    stats[cid]["no_clear_winner"] += 1
-            for answer in candidates:
-                cid = answer["candidate_id"]
-                score_keys = ("event_fit", "sync", "audio_quality", "artifact_severity")
-                for k in score_keys:
-                    value = answer.get(k)
-                    if value is None:
-                        incomplete_fields += 1
-                    elif type(value) is not int or value not in range(1, 6):
-                        raise ValueError("Scores must be integers from 1 through 5 or null when skipped.")
-                unwanted = answer.get("unwanted_music_or_speech")
-                if unwanted is None:
+            if scene_answer.get("audio_id") != audio_by_scene[sid]:
+                raise ValueError(f"Unexpected audio ID for scene {sid}.")
+            stats[sid]["participants"] += 1
+            for field in ("event_fit", "sync", "audio_quality", "artifact_severity"):
+                value = scene_answer.get(field)
+                if value is None:
                     incomplete_fields += 1
-                elif unwanted not in (True, False):
-                    raise ValueError("Unwanted-sound field must be yes/no.")
-                would_use = answer.get("would_use")
-                if would_use is None:
-                    incomplete_fields += 1
-                elif would_use not in ("yes", "after_edit", "no"):
-                    raise ValueError("Invalid use decision.")
-                if not isinstance(answer.get("note", ""), str) or len(answer.get("note", "")) > 1000:
-                    raise ValueError("Invalid note.")
-                s = stats[cid]
-                for k in score_keys:
-                    if answer[k] is not None:
-                        s[k].append(answer[k])
-                if unwanted is not None:
-                    s["unwanted"] += unwanted
-                if would_use is not None:
-                    s["would_use"][would_use] += 1
-                if best is not None:
-                    s["best_total"] += 1
-                    s["best_count"] += best == cid
+                elif type(value) is not int or value not in range(1, 6):
+                    raise ValueError("Scores must be integers from 1 through 5 or null when skipped.")
+                else:
+                    stats[sid][field].append(value)
+            unwanted = scene_answer.get("unwanted_music_or_speech")
+            if unwanted is None:
+                incomplete_fields += 1
+            elif type(unwanted) is not bool:
+                raise ValueError("Unwanted-sound field must be yes/no.")
+            else:
+                stats[sid]["unwanted_music_or_speech_count"] += unwanted
+            would_use = scene_answer.get("would_use")
+            if would_use is None:
+                incomplete_fields += 1
+            elif would_use not in ("yes", "after_edit", "no"):
+                raise ValueError("Invalid use decision.")
+            else:
+                stats[sid]["would_use_counts"][would_use] += 1
+            note = scene_answer.get("note", "")
+            if not isinstance(note, str) or len(note) > 1000:
+                raise ValueError("Invalid scene note.")
+            if note.strip():
+                stats[sid]["notes"].append({"participant_id": participant, "text": note.strip()})
 
-    candidate_results = {}
-    for cid, values in stats.items():
-        meta = candidate_map[cid]
-        candidate_results[cid] = {
-            **meta,
-            "ratings_n_by_metric": {k: len(values[k]) for k in
-                                     ("event_fit", "sync", "audio_quality", "artifact_severity")},
-            "means_1_to_5": {k: (sum(values[k]) / len(values[k]) if values[k] else None) for k in
-                              ("event_fit", "sync", "audio_quality", "artifact_severity")},
-            "unwanted_music_or_speech_count": values["unwanted"],
-            "would_use_counts": dict(values["would_use"]),
-            "preferred_count": values["best_count"],
-            "preference_responses": values["best_total"],
-            "no_clear_winner_count": values["no_clear_winner"],
+    scene_results = {}
+    for sid in scenes:
+        values = stats[sid]
+        scene_results[sid] = {
+            **scenes[sid],
+            "audio": audio[audio_by_scene[sid]],
+            "participants_n": values["participants"],
+            "ratings_n_by_metric": {k: len(values[k]) for k in ("event_fit", "sync", "audio_quality", "artifact_severity")},
+            "means_1_to_5": {
+                k: (sum(values[k]) / len(values[k]) if values[k] else None)
+                for k in ("event_fit", "sync", "audio_quality", "artifact_severity")
+            },
+            "unwanted_music_or_speech_count": values["unwanted_music_or_speech_count"],
+            "would_use_counts": dict(values["would_use_counts"]),
+            "notes": values["notes"],
         }
     return {
-        "schema": "kandinsky-v2a-listening-summary-v1", "study_id": key["study_id"],
-        "participants": len(seen), "missing_rating_fields": incomplete_fields,
-        "candidate_results": candidate_results,
-        "scene_results": {sid: {"participants": v["participants"],
-                                 "preferred_candidate_counts": dict(v["best_candidate_counts"]),
-                                 "no_clear_winner_count": v["no_clear_winner_count"]}
-                          for sid, v in per_scene.items()},
-        "limitations": key.get("limitations", []),
+        "schema": "kandinsky-v2a-listening-summary-v2",
+        "study_id": key["study_id"],
+        "participants": len(seen),
+        "missing_rating_fields": incomplete_fields,
+        "scene_results": scene_results,
+        "interpretation_note": "Small-pilot listener feedback is directional; it is not a general performance rate.",
     }
 
 
@@ -111,11 +101,10 @@ if __name__ == "__main__":
     parser.add_argument("responses_directory", type=Path)
     parser.add_argument("output_json", type=Path)
     args = parser.parse_args()
-    paths = sorted(args.responses_directory.glob("kandinsky_answers_*.json"))
-    if not paths:
-        parser.error("No kandinsky_answers_*.json response files found.")
-    result = aggregate(json.loads(args.researcher_key.read_text(encoding="utf-8")),
-                       [json.loads(p.read_text(encoding="utf-8")) for p in paths])
-    with args.output_json.open("x", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-
+    key = json.loads(args.researcher_key.read_text(encoding="utf-8"))
+    responses = [json.loads(path.read_text(encoding="utf-8"))
+                 for path in sorted(args.responses_directory.glob("*.json"))]
+    result = aggregate(key, responses)
+    args.output_json.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Aggregated {result['participants']} participants across {len(result['scene_results'])} scenes.")
+    print(f"Summary: {args.output_json}")
