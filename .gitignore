@@ -7,4 +7,9 @@ __pycache__/
 .env
 *.wav
 *.mp4
+participant_study*/
+researcher_key.json
+kandinsky_answers_*.json
+Kandinsky_Review_Researcher_Artifacts.zip
+kandinsky_review_bundle.zip
 
