@@ -81,7 +81,7 @@ def build(bundle_path, output_dir):
         for idx, candidate in enumerate(candidates, start=1):
             cid, sid = candidate["candidate_id"], candidate.get("scene_id")
             if sid not in by_scene:
-                raise ValueError(f"Tunç sahne kimliği olmayan aday: {cid}")
+                raise ValueError(f"Tanımsız sahne kimliği olan aday: {cid}")
             audio = safe_member(archive, candidate["audio_path"])
             if not audio.startswith(b"RIFF") or audio[8:12] != b"WAVE":
                 raise ValueError(f"Aday ses WAV değil: {cid}")
