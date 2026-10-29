@@ -60,6 +60,9 @@ Material/action/size/intensity ilk adımda intent ve prompt derleyicisine bilgi 
 
 ## Yol haritası ve karar kapıları
 
+### 0. Çoklu video dinleyici pilotu
+2–5 farklı beş saniyelik oyun sahnesinde aynı Kandinsky Lite Distill ayarlarıyla ikişer seed adayı üret. Katılımcılar sahne/olay uyumu, zamanlama, kalite, artefakt ve üründe tutma kararını değerlendirir. Bu adım model kıyaslaması veya genel başarı oranı iddiası değildir; hangi sahnelerde aday seçimi işe yarıyor sorusuna küçük bir insan değerlendirmesi sağlar.
+
 ### A. Prompt otomasyonu
 Aynı 5 saniyelik sahnede aynı checkpoint ve seed ile elle kısa prompt, motor metadata şablonu ve video açıklaması yollarını karşılaştır. Olay uyumu, doğallık, artefakt ve istenmeyen müzik/konuşmayı ayrı puanla. Sonuç, prompt'u otomatikleştirmenin kalite etkisini gösterecek.
 
@@ -82,3 +85,4 @@ Olay uyumu, doğallık, artefakt/gürültü, istenmeyen sesler, video-ses zamanl
 ## Lisans ve izlenebilirlik
 
 Her sağlayıcının kodu, kesin ağırlık checkpoint'i, bağımlılıkları ve veri kökeni ayrı kaydedilir. Kandinsky model kartındaki MIT etiketi, bağımlılıkların veya eğitim verisinin ticari temizliğini tek başına kanıtlamaz. Ticari dağıtımdan önce bunlar ayrıca incelenir. API anahtarları ve token'lar notebook'a/repoya yazılmaz.
+
