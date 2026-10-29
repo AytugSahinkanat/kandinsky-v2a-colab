@@ -49,3 +49,7 @@ The seed-sweep notebook regenerates a selected five-second video window with see
 - For a 15-second clip, the default window is 10–15 seconds. Keep the event prompt identical to the earlier windows.
 - The notebook reuses existing Pro Distill weights or automatically uses Colab local-scratch; if neither is available, it requires 90 GiB free on /content.
 
+## Productization plan
+
+- [Turkish productization plan](docs/PRODUCTIZATION_PLAN_TR.md)
+- [Engine-agnostic sound job request schema](schemas/sound_job_request.schema.json)
