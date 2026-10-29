@@ -49,7 +49,17 @@ The seed-sweep notebook regenerates a selected five-second video window with see
 - For a 15-second clip, the default window is 10–15 seconds. Keep the event prompt identical to the earlier windows.
 - The notebook reuses existing Pro Distill weights or automatically uses Colab local-scratch; if neither is available, it requires 90 GiB free on /content.
 
+## Multi-video listener pilot
+
+The multi-video notebook generates two blinded seed candidates for each of 2–5 short scenes, then creates an offline participant review package. It records scene fit, video/audio timing, sound quality, artifact severity, unwanted music/speech, and whether each candidate should be kept. It does not train a model or compare against the existing Orfeo/ElevenLabs workflow.
+
+- [Open the multi-video review notebook in Colab](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_MultiVideo_Review.ipynb)
+- [Turkish study instructions and limitations](docs/MULTI_VIDEO_REVIEW_TR.md)
+- Participants receive only `Participant_Package.zip`; the seed/prompt mapping stays in `researcher_key.json`.
+- [Review package builder](tools/build_kandinsky_review.py) and [response aggregator](tools/aggregate_kandinsky_review.py)
+
 ## Productization plan
 
 - [Turkish productization plan](docs/PRODUCTIZATION_PLAN_TR.md)
 - [Engine-agnostic sound job request schema](schemas/sound_job_request.schema.json)
+
