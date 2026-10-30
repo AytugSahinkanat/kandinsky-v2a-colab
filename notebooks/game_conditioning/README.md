@@ -59,8 +59,9 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Compatibility test only: no training, semantic event encoding, learned control, or quality claim.
 
 11. [Step 11: Prepare the paired-data contract](31_paired_game_audio_data_readiness.ipynb)
-   - Defines a five-second, engine-neutral manifest for video, target audio, event times, physical attributes, and raw engine telemetry.
-   - Measures media duration and SHA-256 from the files, checks event timing fields, and requires per-asset commercial-training rights evidence.
+   - Defines a five-second, engine-neutral paired manifest aligned with the earlier controlled-impact plan: measured moving-object mass and normal speed are the primary event inputs; impulse is optional supporting evidence.
+   - Keeps microphone/room metadata separate from event conditioning so distance and reverb can be tested later in a renderer.
+   - Measures media duration and SHA-256 from files, checks declared event/audio-onset fields, and requires per-asset commercial-training rights evidence; clip synchronization still needs human review.
    - Does not download data or train. Blank-template records intentionally fail the training-readiness gate.
 
 ## Current status
