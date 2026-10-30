@@ -18,11 +18,18 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Applies a reversible source patch to a scratch copy of the pinned FusedTransformerDecoderBlock.
    - Checks audio-only and video-plus-audio calls, zero-gate parity, Game→Audio influence, and padded-token masking.
    - Uses small random tensors; does not download model weights, train, or generate audio.
-   - This validates only the block, not the full model or pipeline.
+   - Validates the block only, not the full model or pipeline.
+
+4. [Step 4: Thread game tokens through the full DiT](24_game_audio_cross_attention_step4.ipynb)
+   - Extends the scratch patch through DiffusionTransformer3D.forward and both audio-only and fused video+audio block loops.
+   - Checks state-dict compatibility with an unmodified tiny model, zero-gate parity, dtype conversion, and event-token masking.
+   - Uses a tiny randomly initialized model; does not load pretrained weights, train, or generate audio.
 
 ## Current status
 
-Steps 1–3 are architecture prototypes, not a trained or end-to-end integrated model. Step 3 verifies that a gated Game→Audio branch can run inside Kandinsky's actual fused block with and without video. The next step is to propagate optional game tokens and their mask through DiffusionTransformer3D and its block loops, then inspect checkpoint loading. Training will require paired game-event conditions and target audio.
+Steps 1–4 are architecture prototypes, not a trained or product-integrated model. Step 3 verified the new branch at the fused-block level; Step 4 exercises the full DiT forward path. Neither demonstrates useful learned control or audible quality. Next, inspect how the Kandinsky pipeline constructs and invokes the DiT and how pretrained checkpoint keys are loaded before attempting any real-weight inference or training.
+
+Training will require paired game-event conditions and target audio.
 
 ## Source
 
