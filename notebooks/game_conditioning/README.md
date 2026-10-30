@@ -60,7 +60,7 @@ A focused architecture track for exploring how structured game-event tokens coul
 
 11. [Step 11: Prepare the paired-data contract](31_paired_game_audio_data_readiness.ipynb)
    - Defines a five-second, engine-neutral manifest for video, target audio, event times, physical attributes, and raw engine telemetry.
-   - Checks media paths, durations, event alignment fields, and per-asset commercial-training rights evidence.
+   - Measures media duration and SHA-256 from the files, checks event timing fields, and requires per-asset commercial-training rights evidence.
    - Does not download data or train. Blank-template records intentionally fail the training-readiness gate.
 
 ## Current status
