@@ -40,11 +40,17 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Saves/restores the adapter sidecar and checks audio-only plus video+audio paths.
    - CPU-sized random model; no pretrained checkpoint, training, or audio generation.
 
+8. [Step 8: Pass Game→Audio tokens through PiFlow](28_piflow_sampler_game_conditioning.ipynb)
+   - Adds optional game-token and mask arguments to a scratch copy of Kandinsky's pinned PiFlow sampler.
+   - Runs two short sampler steps with a tiny random DiT and synthetic video/audio latent bundle.
+   - Confirms the sampler forwards the condition on each step and that the open demo gate changes the audio latent.
+   - CPU-sized; no pretrained weights, training, or WAV generation.
+
 ## Current status
 
-Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block. Step 7 extends that lifecycle to a tiny full DiT. These steps do not demonstrate learned control or audible quality, and neither Step 6 nor 7 is official factory or pipeline integration.
+Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Step 7 passed. Step 8 now tests the sampler interface in a scratch PiFlow copy; it still does not test trained control, real checkpoint compatibility, or audible quality. No official factory or production pipeline is changed.
 
-If Step 7 passes, the next work is to thread the condition through one sampler path in a scratch copy of the pipeline. Training will require paired game-event conditions and target audio.
+If Step 8 passes, the next step is to expose the event condition through a scratch pipeline call, then assess feasibility against a permitted pretrained checkpoint. Training still needs paired game-event conditions and target audio, plus a defined event schema.
 
 ## Source
 
