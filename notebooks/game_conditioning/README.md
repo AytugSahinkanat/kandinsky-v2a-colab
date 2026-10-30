@@ -76,6 +76,8 @@ Step 11 defines the paired-data manifest and a conservative readiness validator.
 
 The user-control benefit is now the main success criterion. Step 10 established that the video-conditioned baseline can generate an output; it did not prove that game tokens control that output. The first trained control experiment should vary only measured normal impact speed while holding material pair, object mass, prompt policy, and recording setup fixed. Compare against the video-only baseline and score control direction, sound quality, and event timing separately. Distance/reverb remain renderer controls. Per-event clip replacement and timeline editing are a later product requirement; Step 10 does not demonstrate them.
 
+The [speed-control pilot protocol](32_speed_control_pilot_protocol.md) defines the paired-data requirements, baseline/adapter/counterfactual comparison, success measures, and decision gate. It is a planning document; no data capture or training has started.
+
 ### Next milestone: paired-data readiness (no training yet)
 
 Before training the adapter, define a canonical, engine-neutral event record and assemble paired examples: five-second video, synchronized target audio, event tokens with timestamps, and per-asset license evidence. Each example must have clear rights to use its video and audio for commercial model training; a general dataset label alone is insufficient when it contains third-party game footage/audio. A small, controlled pilot for one event family should precede multi-event training. Candidate public SFX libraries may supply licensed source audio, but they do not provide the required synchronized engine telemetry; that pairing would still need to be captured or authored.
