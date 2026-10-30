@@ -46,11 +46,17 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Confirms the sampler forwards the condition on each step and that the open demo gate changes the audio latent.
    - CPU-sized; no pretrained weights, training, or WAV generation.
 
+9. [Step 9: Wire event tokens through the public pipeline API](29_pipeline_game_api_wiring.ipynb)
+   - Adds optional `game_tokens` and `game_attn_mask` inputs to a scratch copy of the pipeline.
+   - Routes them through both Euler and PiFlow sampler paths into the DiT.
+   - Performs a pinned-source static wiring and syntax audit only.
+   - No pipeline execution, pretrained weights, training, or audio decoding.
+
 ## Current status
 
-Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Step 7 passed. Step 8 now tests the sampler interface in a scratch PiFlow copy; it still does not test trained control, real checkpoint compatibility, or audible quality. No official factory or production pipeline is changed.
+Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Steps 7 and 8 passed. Step 8 verified PiFlow sampler forwarding and a numerical change in synthetic audio latents. Step 9 is prepared to statically audit the public pipeline wiring for both Euler and PiFlow; it has not yet been run in Colab. These steps do not establish trained control, real checkpoint compatibility, or audible quality. No official factory or production pipeline has been changed.
 
-If Step 8 passes, the next step is to expose the event condition through a scratch pipeline call, then assess feasibility against a permitted pretrained checkpoint. Training still needs paired game-event conditions and target audio, plus a defined event schema.
+After Step 9 passes, the next milestone is a real checkpoint plus adapter load and one pipeline generation. That requires a permitted checkpoint, trained or intentionally initialized adapter weights, and an explicit event encoder contract. Training still needs paired game-event conditions and target audio.
 
 ## Source
 
