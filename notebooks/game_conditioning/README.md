@@ -35,11 +35,16 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Saves and restores only the new branch as a sidecar adapter; checks that base weights remain unchanged.
    - Uses a tiny random block; no pretrained weights, training, or audio generation.
 
+7. [Step 7: Extend post-load attachment to a tiny full DiT](27_full_dit_postload_adapter.ipynb)
+   - Strict-loads a synthetic base state on the meta device, reconstructs only non-persistent buffers, then attaches branches to every fused block.
+   - Saves/restores the adapter sidecar and checks audio-only plus video+audio paths.
+   - CPU-sized random model; no pretrained checkpoint, training, or audio generation.
+
 ## Current status
 
-Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 tests post-load attachment and sidecar serialization at the fused-block level. These steps do not demonstrate useful learned control or audible quality, and Step 6 is not yet full-model or factory integration.
+Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block. Step 7 extends that lifecycle to a tiny full DiT. These steps do not demonstrate learned control or audible quality, and neither Step 6 nor 7 is official factory or pipeline integration.
 
-If Step 6 passes, the next work is to extend the same attachment pattern across a tiny full DiT, then wire one sampler path. Training will require paired game-event conditions and target audio.
+If Step 7 passes, the next work is to thread the condition through one sampler path in a scratch copy of the pipeline. Training will require paired game-event conditions and target audio.
 
 ## Source
 
