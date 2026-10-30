@@ -52,11 +52,17 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Performs a pinned-source static wiring and syntax audit only.
    - No pipeline execution, pretrained weights, training, or audio decoding.
 
+10. [Step 10: Smoke-test the real Lite checkpoint and pipeline API](30_real_lite_checkpoint_game_api_smoke.ipynb)
+   - Strict-loads the pinned Lite Distill checkpoint, attaches a zero-gated untrained adapter, and sends placeholder game tokens through a five-second video→audio pipeline call.
+   - Pins source commit `7ceeefad7fb625011f7db602c43893a989f19c15` and checkpoint revision `4c487e8b4aeeb9059e5a77905aa2ddb59ec28f81`.
+   - Requires an A100 80 GB runtime and about 30 GB free disk; the checkpoint snapshot is about 26.64 GB.
+   - Compatibility test only: no training, semantic event encoding, learned control, or quality claim.
+
 ## Current status
 
-Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Steps 7 and 8 passed. Step 8 verified PiFlow sampler forwarding and a numerical change in synthetic audio latents. Step 9 is prepared to statically audit the public pipeline wiring for both Euler and PiFlow; it has not yet been run in Colab. These steps do not establish trained control, real checkpoint compatibility, or audible quality. No official factory or production pipeline has been changed.
+Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Steps 7, 8, and 9 passed. Step 8 verified PiFlow forwarding and a numerical change in synthetic audio latents. Step 9 verified the source-level public API route through both Euler and PiFlow. Neither establishes learned control or audio quality. No official Kandinsky source file has been changed.
 
-After Step 9 passes, the next milestone is a real checkpoint plus adapter load and one pipeline generation. That requires a permitted checkpoint, trained or intentionally initialized adapter weights, and an explicit event encoder contract. Training still needs paired game-event conditions and target audio.
+Step 10 is prepared but not yet run: it attempts one real five-second video→audio call with the pinned Lite Distill checkpoint and a zero-gated adapter. A successful run will prove strict checkpoint compatibility and pipeline execution with the new API, but the placeholder event vector is intentionally ignored. Training still requires a defined event encoder contract and paired game-event/audio examples.
 
 ## Source
 
