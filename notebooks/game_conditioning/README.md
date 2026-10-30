@@ -30,11 +30,16 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Confirms the official loader's strict meta-device path and identifies where a game condition is not yet forwarded.
    - Read-only: does not patch code, download weights, train, or generate audio.
 
+6. [Step 6: Prototype post-load adapter attachment](26_postload_adapter_prototype.ipynb)
+   - Strict-loads a synthetic base state into a real Kandinsky fused block before attaching Game→Audio modules.
+   - Saves and restores only the new branch as a sidecar adapter; checks that base weights remain unchanged.
+   - Uses a tiny random block; no pretrained weights, training, or audio generation.
+
 ## Current status
 
-Steps 1–4 are architecture prototypes, not a trained or product-integrated model. Step 3 verified the branch at the fused-block level; Step 4 exercises the full DiT forward path. Step 5 maps the remaining loader and sampler integration points. None of these steps demonstrates useful learned control or audible quality.
+Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 tests post-load attachment and sidecar serialization at the fused-block level. These steps do not demonstrate useful learned control or audible quality, and Step 6 is not yet full-model or factory integration.
 
-The next technical step is a tiny post-load adapter prototype: strict-load the existing base model first, attach Game→Audio modules afterward, and load only a separate adapter state dict. Then we can wire one sampler path. Training will require paired game-event conditions and target audio.
+If Step 6 passes, the next work is to extend the same attachment pattern across a tiny full DiT, then wire one sampler path. Training will require paired game-event conditions and target audio.
 
 ## Source
 
