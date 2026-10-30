@@ -64,6 +64,10 @@ Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline bou
 
 Step 10 is prepared but not yet run: it attempts one real five-second video→audio call with the pinned Lite Distill checkpoint and a zero-gated adapter. A successful run will prove strict checkpoint compatibility and pipeline execution with the new API, but the placeholder event vector is intentionally ignored. Training still requires a defined event encoder contract and paired game-event/audio examples.
 
+## Licensing notes
+
+The source-derived scratch patches in Steps 8–10 carry an upstream MIT notice preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The Lite Distill model card declares MIT; this does not establish licenses for every bundled third-party component, training source, or generated output.
+
 ## Source
 
 The inspected source revision is pinned to [Kandinsky 6 commit 7ceeefad7fb625011f7db602c43893a989f19c15](https://github.com/kandinskylab/kandinsky-6/tree/7ceeefad7fb625011f7db602c43893a989f19c15).
