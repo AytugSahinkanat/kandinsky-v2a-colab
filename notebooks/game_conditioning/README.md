@@ -62,7 +62,12 @@ A focused architecture track for exploring how structured game-event tokens coul
 
 Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Steps 7, 8, and 9 passed. Step 8 verified PiFlow forwarding and a numerical change in synthetic audio latents. Step 9 verified the source-level public API route through both Euler and PiFlow. Neither establishes learned control or audio quality. No official Kandinsky source file has been changed.
 
-Step 10 is prepared but not yet run: it attempts one real five-second video→audio call with the pinned Lite Distill checkpoint and a zero-gated adapter. A successful run will prove strict checkpoint compatibility and pipeline execution with the new API, but the placeholder event vector is intentionally ignored. Training still requires a defined event encoder contract and paired game-event/audio examples.
+Step 10 has now been run by the user on the real Lite Distill checkpoint. The user reports that the output looked good. This is evidence that the patched checkpoint/pipeline path can produce a result, but the untrained adapter gate remained zero, so game tokens did not control the sound. The football clip and text prompt provided the ordinary video/text conditioning. The structured JSON report has not been independently reviewed here.
+
+### Next milestone: paired-data readiness (no training yet)
+
+Before training the adapter, define a canonical, engine-neutral event record and assemble paired examples: five-second video, synchronized target audio, event tokens with timestamps, and per-asset license evidence. Each example must have clear rights to use its video and audio for commercial model training; a general dataset label alone is insufficient when it contains third-party game footage/audio. A small, controlled pilot for one event family should precede multi-event training. Candidate public SFX libraries may supply licensed source audio, but they do not provide the required synchronized engine telemetry; that pairing would still need to be captured or authored.
+
 
 ## Licensing notes
 
