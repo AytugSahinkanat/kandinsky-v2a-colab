@@ -22,14 +22,19 @@ A focused architecture track for exploring how structured game-event tokens coul
 
 4. [Step 4: Thread game tokens through the full DiT](24_game_audio_cross_attention_step4.ipynb)
    - Extends the scratch patch through DiffusionTransformer3D.forward and both audio-only and fused video+audio block loops.
-   - Checks state-dict compatibility with an unmodified tiny model, zero-gate parity, dtype conversion, and event-token masking.
-   - Uses a tiny randomly initialized model; does not load pretrained weights, train, or generate audio.
+   - Checks tiny-model state-dict compatibility, zero-gate parity, dtype conversion, and event-token masking.
+   - Uses a randomly initialized model; does not load pretrained weights, train, or generate audio.
+
+5. [Step 5: Audit checkpoint loading and pipeline boundaries](25_checkpoint_pipeline_audit.ipynb)
+   - Reads the pinned factory, checkpoint loader, public pipeline, and both sampler paths.
+   - Confirms the official loader's strict meta-device path and identifies where a game condition is not yet forwarded.
+   - Read-only: does not patch code, download weights, train, or generate audio.
 
 ## Current status
 
-Steps 1–4 are architecture prototypes, not a trained or product-integrated model. Step 3 verified the new branch at the fused-block level; Step 4 exercises the full DiT forward path. Neither demonstrates useful learned control or audible quality. Next, inspect how the Kandinsky pipeline constructs and invokes the DiT and how pretrained checkpoint keys are loaded before attempting any real-weight inference or training.
+Steps 1–4 are architecture prototypes, not a trained or product-integrated model. Step 3 verified the branch at the fused-block level; Step 4 exercises the full DiT forward path. Step 5 maps the remaining loader and sampler integration points. None of these steps demonstrates useful learned control or audible quality.
 
-Training will require paired game-event conditions and target audio.
+The next technical step is a tiny post-load adapter prototype: strict-load the existing base model first, attach Game→Audio modules afterward, and load only a separate adapter state dict. Then we can wire one sampler path. Training will require paired game-event conditions and target audio.
 
 ## Source
 
