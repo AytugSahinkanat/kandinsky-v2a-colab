@@ -58,11 +58,18 @@ A focused architecture track for exploring how structured game-event tokens coul
    - Requires an A100 80 GB runtime and about 30 GB free disk; the checkpoint snapshot is about 26.64 GB.
    - Compatibility test only: no training, semantic event encoding, learned control, or quality claim.
 
+11. [Step 11: Prepare the paired-data contract](31_paired_game_audio_data_readiness.ipynb)
+   - Defines a five-second, engine-neutral manifest for video, target audio, event times, physical attributes, and raw engine telemetry.
+   - Checks media paths, durations, event alignment fields, and per-asset commercial-training rights evidence.
+   - Does not download data or train. Blank-template records intentionally fail the training-readiness gate.
+
 ## Current status
 
 Steps 1–4 are architecture prototypes; Step 5 maps checkpoint and pipeline boundaries. Step 6 validates post-load sidecar attachment on one fused block, and Step 7 extends the lifecycle to a tiny full DiT. The user reports Steps 7, 8, and 9 passed. Step 8 verified PiFlow forwarding and a numerical change in synthetic audio latents. Step 9 verified the source-level public API route through both Euler and PiFlow. Neither establishes learned control or audio quality. No official Kandinsky source file has been changed.
 
 Step 10 has now been run by the user on the real Lite Distill checkpoint. The user reports that the output looked good. This is evidence that the patched checkpoint/pipeline path can produce a result, but the untrained adapter gate remained zero, so game tokens did not control the sound. The football clip and text prompt provided the ordinary video/text conditioning. The structured JSON report has not been independently reviewed here.
+
+Step 11 defines the paired-data manifest and a conservative readiness validator. It does not establish that any specific source is commercially cleared; a human must review evidence for each audio and video asset.
 
 ### Next milestone: paired-data readiness (no training yet)
 
