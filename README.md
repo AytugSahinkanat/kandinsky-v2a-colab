@@ -28,6 +28,8 @@ The official Kandinsky code repository and Lite Distill checkpoint currently dis
 
 ## Evaluation
 
+The current product validation plan, listening rubric, and AWS/training decision gates are in [docs/PRODUCT_VALIDATION_ROADMAP.md](docs/PRODUCT_VALIDATION_ROADMAP.md).
+
 Use the same video and exact same event prompt in the Stable Audio arm. Compare event match, audio-video sync, sound quality, unwanted music/speech, and latency. Keep our listening observations separate from paper-reported benchmarks.
 
 ## Quality comparison notebook
