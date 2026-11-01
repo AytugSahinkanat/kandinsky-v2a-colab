@@ -16,22 +16,26 @@ The product proof should cover three separate claims:
 
 - Kandinsky 6's current video-to-audio request takes both a video and a text prompt. The current experiment is therefore video-plus-prompt, not prompt-free and not direct game-engine numeric conditioning.
 - The model outputs a continuous audio track in an MP4. It does not currently return separate semantic stems or a native set of editable sound events.
-- The existing three-scene Lite vs Lite Distill comparison is a useful pilot. The user's listening notes favor Full Lite for sound quality/noise, while Distill is substantially faster. Keep those results as preliminary qualitative evidence.
+- Pilot 0 already contains three five-second scenes: city pedestrians, a flowing stream, and a door opening. It compared Lite Full and Lite Distill with the same prompt and seed per scene on an A100 80 GB.
+- Reported generation times were about 120.7 seconds per clip for Distill and 602.3 seconds for Full Lite on average (about 5× slower). The report's numeric listening scores are blank. The user's overall listening impression favors Full Lite for quality and noise, but it has not been recorded per scene.
+- The three source pages currently label the media CC0: [city pedestrians](https://commons.wikimedia.org/wiki/File:Big_City_Life.webm), [flowing stream](https://commons.wikimedia.org/wiki/File:Water_flowing_strem.webm), and [door animation](https://commons.wikimedia.org/wiki/File:DoorOpen.gif). The door source is a webcomic animation, not live-action footage. These pages give us traceable evaluation sources; this is not a blanket rights clearance for any identifiable people or a model-training decision.
 - The 15-second window experiment is a continuity experiment: each five-second region is generated separately. It does not prove that the model makes one coherent 15-second soundscape.
 - No fine-tuning is required for the next validation step.
 
 ## Phase 1 — Freeze and review the existing pilot
 
-- [ ] Keep the existing three-scene Lite/Distill report and generated files as Pilot 0.
-- [ ] Record the exact source clip, rights evidence, prompt, seed, model checkpoint, source-code commit, and settings for each result.
-- [ ] Mark any source clip with unclear reuse or sharing rights as internal-only until reviewed.
-- [ ] Do not re-run an existing generation just to recreate files that are already available.
+- [x] Keep the existing three-scene Lite/Distill report and generated files as Pilot 0.
+- [x] The report records prompts, seed 42, five-second duration, model/checkpoint, source commit, A100 GPU, source URLs, source hashes, generation times, and output hashes.
+- [x] Checked the three source pages: each currently displays CC0. Keep the door animation distinct from a realistic door-action clip.
+- [ ] Add listening ratings to the report or a companion review file; the score fields in the ZIP are currently null.
+- [ ] Keep rights evidence attached to each source record. CC0 on a source page does not resolve separate privacy/publicity questions for identifiable people.
+- [x] Do not rerun existing generations just to recreate files already in the ZIP.
 
 **Output:** one reproducible record per generation, plus a short listening summary. This lets us build on results already obtained instead of restarting.
 
 ## Phase 2 — Build a small, controlled evaluation set
 
-Start with **8–12 short clips**, not a large scraped collection. Prefer owned recordings or sources whose rights for the planned evaluation and sharing are documented. Keep the source video and generated output out of public Git history unless redistribution is clearly allowed.
+The three scenes in Pilot 0 are the start, not a reason to restart. Add **5–9 short clips** to reach 8–12 total. Prefer owned recordings or sources with documented rights for the planned evaluation and sharing. Keep source videos and generated media out of public Git history unless redistribution is clearly allowed. For evaluation, we do not need to collect a separate target-audio file for every video; a generated output plus a human rating is enough for the first product check. Reference audio is useful when we can lawfully use it and want a direct target comparison. Training later needs aligned video/audio pairs.
 
 Target coverage:
 
@@ -43,7 +47,7 @@ Target coverage:
 | Environment | water, wind, or birds | sustained ambience and texture |
 | Layered scene | movement plus environment | whether the main event remains clear |
 
-For each clip, record a short event prompt in one consistent style, expected event onset(s), clip duration, source, rights evidence, and a content hash. Keep the evaluation set separate from any future training pool.
+For each clip, record: case ID; source URL and SHA-256; license/evidence and review note; selected time range; expected event and approximate onset; fixed event prompt; model/checkpoint, seed, settings, runtime; output path and SHA-256; listening scores. Keep the evaluation set separate from any future training pool.
 
 **Do not vary multiple things at once.** To compare checkpoints, hold video, prompt, seed, duration, and settings constant. To compare prompts, hold the clip and generation settings constant.
 
@@ -104,9 +108,9 @@ Do not collect a large generic pile of prompts, videos, and audio. Unpaired asse
 
 ## Suggested next action
 
-1. Reuse the existing three-scene comparison as Pilot 0.
-2. Audit the source rights and metadata for those three clips.
-3. Add only enough licensed clips to reach a balanced 8–12 clip evaluation set.
+1. Use the existing three-scene ZIP as Pilot 0; do not regenerate those six outputs.
+2. Record your listening notes against each candidate ID, since the report's score fields are blank.
+3. Add 5–9 clips for underrepresented cases. In particular, replace or supplement the animated door with a real door clip if we want to claim real-world Foley coverage.
 4. Run the listening comparison and build the three-asset editing prototype.
 5. Review quality, timing, editability, and runtime together before choosing AWS or fine-tuning.
 
