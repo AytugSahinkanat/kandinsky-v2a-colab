@@ -45,6 +45,15 @@ The Pro Distill A/B notebook keeps the Lite notebook unchanged. Use the same vid
 
 The Pro Distill comparison uses a selectable 5-second window. Longer clips require a separate chunking experiment. For a fair Lite-vs-Pro comparison, use the same video window, prompt, and seed.
 
+## Event-layer product pilot
+
+This pilot asks whether event-level sound layers are easier to edit than one full-scene output. Qwen3-VL proposes visible event intervals, the user approves or edits them, and Kandinsky Full Lite generates a full-scene baseline plus separate footsteps and city-ambience candidates from the same five-second CC0 video window. The layers are mixed after generation. All three Kandinsky jobs run sequentially; no training is performed.
+
+- [Open the Qwen + Kandinsky event-layer pilot in Colab](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_Event_Layers_Pilot.ipynb)
+- The notebook uses Qwen3-VL-2B-Instruct, whose model card lists Apache-2.0. It does not use Qwen2.5-VL-3B, whose published license file requires a separate license for commercial use.
+- Qwen timestamps are suggestions and must be reviewed. The urban ambience layer is explicitly user-added because the source video is silent.
+- The separate Kandinsky prompts may still contain overlapping sounds; the pilot measures whether they behave as independently editable layers.
+
 ## Last-window seed sweep
 
 The seed-sweep notebook regenerates a selected five-second video window with seeds 42, 123, and 7 while keeping the prompt, video, and model settings fixed. It runs candidates sequentially and reports sampled system RAM and GPU memory.
