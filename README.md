@@ -72,6 +72,10 @@ The multi-video notebook automatically downloads six CC0 clips from Wikimedia Co
 - Participants receive only Participant_Package.zip; the prompt/seed mapping stays in researcher_key.json.
 - [Review package builder](tools/build_kandinsky_review.py) and [response aggregator](tools/aggregate_kandinsky_review.py)
 
+## AWS inference preparation
+
+- [Kandinsky AWS migration and benchmark plan (Turkish)](docs/AWS_KANDINSKY_MIGRATION_PLAN_TR.md)
+
 ## Productization plan
 
 - [Turkish productization plan](docs/PRODUCTIZATION_PLAN_TR.md)
