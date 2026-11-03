@@ -75,7 +75,8 @@ The multi-video notebook automatically downloads six CC0 clips from Wikimedia Co
 ## AWS inference preparation
 
 - [Kandinsky AWS migration and benchmark plan (Turkish)](docs/AWS_KANDINSKY_MIGRATION_PLAN_TR.md)
-- [Open the pinned Colab baseline capture notebook](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/main/notebooks/Kandinsky_V2A_AWS_Baseline_Colab.ipynb)
+- [Open the Colab persistent-worker pilot](https://colab.research.google.com/github/AytugSahinkanat/kandinsky-v2a-colab/blob/codex/aws-persistent-worker-pilot-20261104/notebooks/Kandinsky_V2A_AWS_Persistent_Worker_Pilot.ipynb)
+- The pilot loads Full Lite once and runs three sequential V2A requests in one process. It measures model-load time, per-request latency, memory, and outputs; it does not train or compare GPUs.
 
 ## Productization plan
 
