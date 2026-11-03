@@ -12,7 +12,7 @@ Colab’de çalışan Kandinsky 6.0 **video-to-audio** akışını, AWS üzerind
 - Kandinsky’nin resmî hızlı başlangıç belgesi Python 3.13/3.14 ve NVIDIA GPU istiyor. just setup, GPU’nun compute capability değerini okuyup uygun PyTorch/attention bağımlılıklarını kuruyor.
 - 1 Kasım 2026 tarihli kalite-genelleme raporu zaten üç CC0 sahnede altı üretimi kaydediyor. A100-SXM4-80GB üzerinde Lite Distill süreleri **119–123 saniye**, tam Lite süreleri **599–605 saniye**. Kaynak commit, seed 42, promptlar, beş saniyelik pencereler ve çıktı hash’leri mevcut.
 - Kullanıcının dinleme izlenimi tam Lite’ın daha kaliteli ve daha az gürültülü olduğu yönünde; rapordaki puan alanları boş. Bu nedenle bunu yapılandırılmış kullanıcı başarısı değil, dinleme gözlemi olarak tutuyoruz.
-- Eski raporda tepe GPU/RAM örnekleri ve paket dondurması yok. Yeni [Colab AWS baseline notebook’u](../notebooks/Kandinsky_V2A_AWS_Baseline_Colab.ipynb) yalnızca şehir sahnesindeki iki checkpoint’i tekrar üretip bu eksikleri toplar; altı üretimin tamamını tekrarlamaz. H100 Colab runtime’ı varsa onu tercih eder, A100 80 GB’ı yedek kabul eder.
+- Eski raporda tepe GPU/RAM örnekleri ve paket dondurması yok. H100–A100 Colab kıyasını AWS kararı için ön koşul yapmıyoruz. Yeni [Colab persistent-worker pilotu](../notebooks/Kandinsky_V2A_AWS_Persistent_Worker_Pilot.ipynb) mevcut G4/A100/H100 80 GB sınıfı Colab GPU’sunda Full Lite’ı bir kez yükleyip aynı Python sürecinde üç işi sırayla çalıştırır; model yükleme, istek süresi, tepe VRAM/RAM, paketler ve çıktı hash’lerini kaydeder.
 - Kandinsky’nin resmî hız tablosu **text-to-audio-video** ölçüyor. Bizim görevimiz **video-to-audio** olduğu için tablodaki süreleri AWS maliyet tahminine taşımayacağız.
 - Yeni baseline aynı video penceresi SHA-256’sını, prompt’u, seed’i, config’i, kaynak commit’i ve checkpoint cache revision’larını kaydeder. Hareketli upstream kaynak yerine commit’i sabitleyeceğiz.
 
@@ -39,13 +39,15 @@ Kaynaklar: [AWS On-Demand fiyatlandırma](https://aws.amazon.com/ec2/pricing/on-
 
 ## Deney planı
 
-### Aşama 1 — Colab baseline’ını tamamla
+### Aşama 1 — Colab’de kalıcı worker akışını kanıtla
 
-- [x] Üç sahne ve iki checkpoint’in A100 zaman/çıktı hash baseline’ı mevcut; altı işi tekrar çalıştırma.
-- [ ] H100 80 GB Colab runtime’ı varsa AWS baseline notebook’unda aynı şehir penceresi ve iki checkpoint’i çalıştır. H100 yoksa A100 80 GB fallback’i kullan.
-- [ ] Çıktı ZIP’inde gerçek input window, source/weight revision, commit, config, prompt, seed, output hash, CPU RAM/GPU VRAM tepe örnekleri, kurulu paketler ve loglar bulunduğunu doğrula.
-- [ ] Dinleme notunu yapılandırılmış alana yaz; puan alanlarını boş bırakma.
-- [ ] Bu ZIP’i AWS karşılaştırmasının değişmez referansı olarak sakla; videoyu GitHub’a koyma.
+- [x] Üç sahne ve iki checkpoint’in A100 üretim örnekleri mevcut; bu işleri yeniden çalıştırma.
+- [ ] [Persistent-worker pilotunu](../notebooks/Kandinsky_V2A_AWS_Persistent_Worker_Pilot.ipynb) şu an atanmış 80 GB sınıfı Colab GPU’sunda çalıştır. GPU’ları birbirine karşı kıyaslama.
+- [ ] Full Lite pipeline’ını bir kez yükle; aynı beş saniyelik CC0 video ve prompt ile seed 42, 123, 7 isteklerini **aynı süreçte** sırayla işle.
+- [ ] Checkpoint/model yükleme süresini, her isteğin uçtan uca süresini, tepe VRAM/RAM’i, paketleri, logları ve çıktı hash’lerini tek ZIP’te sakla.
+- [ ] Üç sesi dinle; sahne uyumu, senkronizasyon, kalite ve artefakt notlarını rapora gir.
+
+**Colab geçiş ölçütü:** Pipeline bir kez yüklenmiş olmalı; üç istek aynı süreçten tamamlanmalı; MP4/WAV çıktıları açılmalı ve bellek kullanımı raporlanmalı. Bu, AWS’deki tek GPU worker’ı için çalışma biçimini doğrular; AWS hızını veya maliyetini henüz kanıtlamaz.
 
 ### Aşama 2 — AWS tek GPU smoke run
 
@@ -58,7 +60,7 @@ Kaynaklar: [AWS On-Demand fiyatlandırma](https://aws.amazon.com/ec2/pricing/on-
 
 ### Aşama 3 — Hız ayarlarını ayrı ölç
 
-İlk eşdeğerlik koşusundan sonra, bir seferde tek değişkeni oynat:
+İlk AWS worker koşusu başarıyla tamamlandıktan sonra, bir seferde tek değişkeni oynat:
 
 1. Aynı modeli ve aynı girişi, önce Colab’deki SDPA ayarıyla ölç.
 2. Sonra H100 için resmî attention/compile önerisini ayrı bir koşuda dene.
