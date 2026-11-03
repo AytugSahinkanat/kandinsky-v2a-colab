@@ -10,9 +10,11 @@ Colab’de çalışan Kandinsky 6.0 **video-to-audio** akışını, AWS üzerind
 
 - Bu akış video ve metin prompt’unu birlikte alıyor; prompt şu an zorunlu. Çıktı, videonun görüntülerini koruyan MP4 içine yazılmış tek ses akışı. Ayrı semantik stem/one-shot üretimi mevcut değil.
 - Kandinsky’nin resmî hızlı başlangıç belgesi Python 3.13/3.14 ve NVIDIA GPU istiyor. just setup, GPU’nun compute capability değerini okuyup uygun PyTorch/attention bağımlılıklarını kuruyor.
-- Mevcut kullanıcı denemelerinde 5 saniyelik üretim yaklaşık **120 saniye Lite Distill**, **686 saniye tam Lite** sürmüş. Bunlar tekil Colab gözlemleridir; AWS süresi tahmini değildir.
+- 1 Kasım 2026 tarihli kalite-genelleme raporu zaten üç CC0 sahnede altı üretimi kaydediyor. A100-SXM4-80GB üzerinde Lite Distill süreleri **119–123 saniye**, tam Lite süreleri **599–605 saniye**. Kaynak commit, seed 42, promptlar, beş saniyelik pencereler ve çıktı hash’leri mevcut.
+- Kullanıcının dinleme izlenimi tam Lite’ın daha kaliteli ve daha az gürültülü olduğu yönünde; rapordaki puan alanları boş. Bu nedenle bunu yapılandırılmış kullanıcı başarısı değil, dinleme gözlemi olarak tutuyoruz.
+- Eski raporda tepe GPU/RAM örnekleri ve paket dondurması yok. Yeni [Colab AWS baseline notebook’u](../notebooks/Kandinsky_V2A_AWS_Baseline_Colab.ipynb) yalnızca şehir sahnesindeki iki checkpoint’i tekrar üretip bu eksikleri toplar; altı üretimin tamamını tekrarlamaz. H100 Colab runtime’ı varsa onu tercih eder, A100 80 GB’ı yedek kabul eder.
 - Kandinsky’nin resmî hız tablosu **text-to-audio-video** ölçüyor. Bizim görevimiz **video-to-audio** olduğu için tablodaki süreleri AWS maliyet tahminine taşımayacağız.
-- Geçişten önce Colab’de başarılı olan model, checkpoint, prompt, seed, config ve kaynak video penceresini sabitleyeceğiz. GitHub notebook’larının hareketli bir upstream kaynağı kullandığı yerlerde Kandinsky kaynak commit’ini ayrıca kaydedeceğiz.
+- Yeni baseline aynı video penceresi SHA-256’sını, prompt’u, seed’i, config’i, kaynak commit’i ve checkpoint cache revision’larını kaydeder. Hareketli upstream kaynak yerine commit’i sabitleyeceğiz.
 
 ## İlk GPU adayı
 
@@ -22,7 +24,7 @@ Colab’de çalışan Kandinsky 6.0 **video-to-audio** akışını, AWS üzerind
 | EC2 g6e, tek L40S GPU | 48 GiB GPU belleği | Daha düşük maliyetli alternatif; ancak önce Lite/Distill’in gerekli offload ayarlarıyla sığdığı ve hızının yeterli olduğu doğrulanmalı |
 | EC2 p4de.24xlarge | 8 × A100 80 GiB | Tek GPU’lu çıkarım deneyi için gereksiz büyük; bu aşamada önerilmiyor |
 
-P5.4xlarge, Colab’de kullandığımız A100 80 GB’a göre aynı GPU belleği sınıfında, ayrıca H100 ve 256 GiB sistem belleği sağlar. Tek kart kullanmak, çoklu GPU dağıtımı ve paralel model yükleme karmaşıklığını şimdilik önler. Kaynaklar: [AWS EC2 instance types](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-types.pdf), [P5 single-GPU duyurusu ve bölge seçenekleri](https://aws.amazon.com/about-aws/whats-new/2025/08/amazon-p5-single-gpu-instances-now-available/).
+P5.4xlarge tek H100 80 GB ve 256 GiB sistem belleği sağlar. Colab’de H100 runtime varsa aynı GPU ailesinde karşılaştırma yapacağız; yoksa A100 80 GB raporu mevcut fallback referansımızdır. Tek kart kullanmak, çoklu GPU dağıtımı ve paralel model yükleme karmaşıklığını şimdilik önler. Kaynaklar: [AWS EC2 instance types](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-types.pdf), [P5 single-GPU duyurusu ve bölge seçenekleri](https://aws.amazon.com/about-aws/whats-new/2025/08/amazon-p5-single-gpu-instances-now-available/).
 
 **İlk seçim önerisi:** Hesapta bölge, kapasite ve kota uygunsa p5.4xlarge On-Demand. AWS duyurusuna göre bu boyut On-Demand olarak Londra, Mumbai, Jakarta, Tokyo ve São Paulo bölgelerinde satın alınabiliyor; bölge/kapasite durumu ve güncel fiyat başlatmadan önce hesapta teyit edilmeli. İstanbul’dan en yakın aday Londra olsa da veri konumu ve şirket politikası kararı etkileyebilir.
 
@@ -37,13 +39,13 @@ Kaynaklar: [AWS On-Demand fiyatlandırma](https://aws.amazon.com/ec2/pricing/on-
 
 ## Deney planı
 
-### Aşama 1 — Çalıştırma paketini sabitle
+### Aşama 1 — Colab baseline’ını tamamla
 
-- [ ] Colab’de gerçekten iyi sonuç veren tek 5 saniyelik video kesitini seç.
-- [ ] Aynı kısa prompt, seed, checkpoint (Lite Distill veya tam Lite), örnekleme adımı, çözünürlük, attention, offload ve beautifier ayarlarını kaydet.
-- [ ] Kaynak video ve prompt dosyasının SHA-256 değerini kaydet; videoyu GitHub’a koyma.
-- [ ] Kandinsky upstream commit’ini, notebook commit’ini, model/checkpoint kimliğini ve launch.json/üretim loglarını kaydet.
-- [ ] Çalışan Colab ortamından Python, PyTorch, CUDA/driver, just setup çıktısı ve kurulu paket sürümlerini dışa aktar.
+- [x] Üç sahne ve iki checkpoint’in A100 zaman/çıktı hash baseline’ı mevcut; altı işi tekrar çalıştırma.
+- [ ] H100 80 GB Colab runtime’ı varsa AWS baseline notebook’unda aynı şehir penceresi ve iki checkpoint’i çalıştır. H100 yoksa A100 80 GB fallback’i kullan.
+- [ ] Çıktı ZIP’inde gerçek input window, source/weight revision, commit, config, prompt, seed, output hash, CPU RAM/GPU VRAM tepe örnekleri, kurulu paketler ve loglar bulunduğunu doğrula.
+- [ ] Dinleme notunu yapılandırılmış alana yaz; puan alanlarını boş bırakma.
+- [ ] Bu ZIP’i AWS karşılaştırmasının değişmez referansı olarak sakla; videoyu GitHub’a koyma.
 
 ### Aşama 2 — AWS tek GPU smoke run
 
